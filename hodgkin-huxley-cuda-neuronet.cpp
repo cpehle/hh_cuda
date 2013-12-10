@@ -64,20 +64,37 @@ int main(){
 			n1 = hh_n_ch(V_ms[n], n_chs[n]);
 			m1 = hh_m_ch(V_ms[n], m_chs[n]);
 			h1 = hh_h_ch(V_ms[n], h_chs[n]);
-			V_ms[n] = V_m + v1;
-			n_chs[n] = n_ch + n1;
-			m_chs[n] = m_ch + m1;
-			h_chs[n] = h_ch + h1;
+			V_ms[n] = V_m + v1/2.0f;
+			n_chs[n] = n_ch + n1/2.0f;
+			m_chs[n] = m_ch + m1/2.0f;
+			h_chs[n] = h_ch + h1/2.0f;
 
 			v2 = hh_Vm(V_ms[n], n_chs[n], m_chs[n], h_chs[n], I_syns[n], I_es[n]);
 			n2 = hh_n_ch(V_ms[n], n_chs[n]);
 			m2 = hh_m_ch(V_ms[n], m_chs[n]);
 			h2 = hh_h_ch(V_ms[n], h_chs[n]);
-			V_ms[n] = V_m + (v1 + v2)/2.0f;
-			n_chs[n] = n_ch + (n1 + n2)/2.0f;
-			m_chs[n] = m_ch + (m1 + m2)/2.0f;
-			h_chs[n] = h_ch + (h1 + h2)/2.0f;
+			V_ms[n] = V_m + v2/2.0f;
+			n_chs[n] = n_ch + n2/2.0f;
+			m_chs[n] = m_ch + m2/2.0f;
+			h_chs[n] = h_ch + h2/2.0f;
 
+			v3 = hh_Vm(V_ms[n], n_chs[n], m_chs[n], h_chs[n], I_syns[n], I_es[n]);
+			n3 = hh_n_ch(V_ms[n], n_chs[n]);
+			m3 = hh_m_ch(V_ms[n], m_chs[n]);
+			h3 = hh_h_ch(V_ms[n], h_chs[n]);
+			V_ms[n] = V_m + v3;
+			n_chs[n] = n_ch + n3;
+			m_chs[n] = m_ch + m3;
+			h_chs[n] = h_ch + h3;
+
+			v4 = hh_Vm(V_ms[n], n_chs[n], m_chs[n], h_chs[n], I_syns[n], I_es[n]);
+			n4 = hh_n_ch(V_ms[n], n_chs[n]);
+			m4 = hh_m_ch(V_ms[n], m_chs[n]);
+			h4 = hh_h_ch(V_ms[n], h_chs[n]);
+			V_ms[n] = V_m + (v1 + 2.0f*v2 + 2.0f*v3 + v4)/6.0f;
+			n_chs[n] = n_ch + (n1 + 2.0f*n2 + 2.0f*n3 + n4)/6.0f;
+			m_chs[n] = m_ch + (m1 + 2.0f*m2 + 2.0f*m3 + m4)/6.0f;
+			h_chs[n] = h_ch + (h1 + 2.0f*h2 + 2.0f*h3 + h4)/6.0f;
 		}
 	}
 	res_file.close();
