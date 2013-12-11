@@ -75,10 +75,10 @@ void malloc_conn_memory(){
 void init_conns_from_file(){
 	ys[0] = 0.0f;
 	I_psns[0] = 0.0f;
-	weights[0] = 1.0f;
+	weights[0] = 20.0f;
 	pre_conns[0] = 0;
 	post_conns[0] = 1;
-	delays[0] = 0.0f;
+	delays[0] = 2;
 }
 
 void ini_neurs_from_file(){

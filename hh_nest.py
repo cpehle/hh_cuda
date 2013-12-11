@@ -3,20 +3,18 @@ import nest.voltage_trace
 import numpy as np
 import matplotlib.pylab as pl
 
-I = 5.27
 
 Tsim = 50
 h = 0.1
-peak_variables = {'Act_h': 0.22399445261588857, 
-                  'Act_m': 0.91317780810919347,
-                  'Inact_n': 0.57467683928571844,
-                  'V_m': 32.906693266145602}
+
+I = 5.27
 
 nest.ResetKernel()
 nest.SetKernelStatus({'resolution': h, 'local_num_threads': 1})
-nest.SetDefaults('hh_psc_alpha', params={'E_L': -54.4, 'E_Na': 55., 'C_m': 1., 'g_K': 36., 'g_L': 0.3, 'g_Na': 120., 'I_e': 5.27})
-nest.SetDefaults('hh_psc_alpha', params=peak_variables)
-neuron = nest.Create('hh_psc_alpha')
+nest.SetDefaults('hh_psc_alpha', params={'E_L': -54.4, 'E_Na': 55., 'C_m': 1., 'g_K': 36., 'g_L': 0.3, 'g_Na': 120., 
+                                         'Act_h': 0.223994, 'Act_m': 0.913177, 'Inact_n': 0.574676, 'V_m': 32.906693})
+
+neuron = nest.Create('hh_psc_alpha', params={'I_e': I})
 p = nest.Create('poisson_generator')
 nest.SetStatus(p, params={'rate': 10.})
 #nest.Connect(p, neuron, params={'weight': 1.})

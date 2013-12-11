@@ -5,7 +5,7 @@
 #include <cmath>
 #include "hodgkin-huxley-cuda-neuronet.h"
 
-float h = 0.1f;
+float h = 0.05f;
 float SimulationTime = 50.0f;
 
 using namespace std;
@@ -26,7 +26,7 @@ float tau_psc = 0.2f;
 float exp_psc = exp(-h/tau_psc);
 
 float hh_Vm(float V, float n_ch, float m_ch, float h_ch, float I_syn, float I_e){
-	return (I_e - g_K*(V - E_K)*n_ch*n_ch*n_ch*n_ch - g_Na*(V - E_Na)*m_ch*m_ch*m_ch*h_ch - g_L*(V - E_L) - I_syn)*h/Cm;
+	return (I_e - g_K*(V - E_K)*n_ch*n_ch*n_ch*n_ch - g_Na*(V - E_Na)*m_ch*m_ch*m_ch*h_ch - g_L*(V - E_L) + I_syn)*h/Cm;
 }
 
 float hh_n_ch(float V, float n_ch){
@@ -107,6 +107,7 @@ int main(){
 			}
 			V_ms_last_[n] = V_ms_last[n];
 			V_ms_last[n] = V_ms[n];
+			I_syns[n] = 0.0f;
 		}
 
 		for (int s = 0; s < Ncon; s++){
@@ -123,6 +124,7 @@ int main(){
 //					cout << "Spike processed! Time: " << t*h << endl;
 				}
 			}
+			I_syns[post_conns[s]] += I_psns[s];
 		}
 	}
 	res_file.close();
