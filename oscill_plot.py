@@ -10,7 +10,7 @@ import numpy as np
 import matplotlib.pyplot as pl
 import csv
 
-f = open('res.csv', "r")
+f = open('oscill.csv', "r")
 rdr = csv.reader(f,delimiter=";")
 t = []
 V_mean_pre = []
@@ -32,11 +32,11 @@ ax10 = pl.subplot(212, sharex=ax00)
 ax00.plot(t, V_mean_pre, 'r')
 ax00.plot(t, V_mean_post, 'b')
 ax00.set_ylabel(u'Мембранный потенциал, мВ')
-ax00.legend([u"Пресинаптический", u"Постсинаптический"], prop={'size': 8})
+ax00.legend([u"Пресинаптический", u"Постсинаптический"], prop={'size': 10})
 ax00.grid()
 ax10.plot(t, I_psns)
 # ax10.plot(t, ys)
-ax10.legend(["I_psn", "y"], prop={'size': 8})
+ax10.legend(["I_psn", "y"], prop={'size': 10})
 ax10.set_ylabel(u"Синаптическая активность")
 pl.xlabel(u"Время, мс")
 ax10.grid()

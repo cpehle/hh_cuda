@@ -59,4 +59,23 @@ nest.Simulate(Tsim)
 
 events = nest.GetStatus(sd)[0]["events"]
 pl.plot(events['times'], events['senders'], '.')
+pl.xlabel("Time, ms")
+pl.ylabel("Neuron index")
+pl.title("NEST")
+
+f = open('rastr.csv')
+rdr = csv.reader(f, delimiter=';')
+
+times = []
+neurons = []
+for sp in rdr:
+    times.append(sp[0])
+    neurons.append(sp[1])
+times = np.array(times, dtype='float')
+neurons = np.array(neurons, dtype='int')
+pl.figure()
+pl.plot(times, neurons, '.')
+pl.xlabel("Time, ms")
+pl.ylabel("Neuron index")
+pl.title("CUDA")
 pl.show()

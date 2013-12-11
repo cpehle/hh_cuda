@@ -28,8 +28,8 @@ int* post_conns;
 int* delays; // delays in integration steps
 int* num_spk_proc; // number of processed spikes by each synapse
 
-int Nneur = 2;
-int Ncon = 1;
+int Nneur = 10;
+int Ncon;
 int T_sim;
 int spike_arr_dim;
 
@@ -53,9 +53,12 @@ void malloc_neur_memory(){
 	// if num-th spike occur at a time t on n-th neuron then,
 	// t is stored in element with index T_sim/5*num + n
 	// spike_times[T_sim/5*num + n] = t
-	spike_arr_dim = Nneur*T_sim/5;
-	spike_times = new int[spike_arr_dim];
+	spike_times = new int[Nneur*T_sim/5];
 	num_spikes = new int[Nneur];
+	memset(I_syns, 0, Nneur*sizeof(float));
+	memset(I_syns_, 0, Nneur*sizeof(float));
+	memset(I_poisson, 0, Nneur*sizeof(float));
+	memset(y_poisson, 0, Nneur*sizeof(float));
 	memset(num_spikes, 0, Nneur*sizeof(int));
 }
 
@@ -67,37 +70,11 @@ void malloc_conn_memory(){
 	post_conns = new int[Ncon];
 	delays = new int[Ncon];
 	num_spk_proc = new int[Ncon];
+	memset(ys, 0, Ncon*sizeof(int));
+	memset(I_psns, 0, Ncon*sizeof(int));
 	memset(num_spk_proc, 0, Ncon*sizeof(int));
 }
 
-void init_conns_from_file(){
-	ys[0] = 0.0f;
-	I_psns[0] = 0.0f;
-	weights[0] = 20.0f;
-	pre_conns[0] = 0;
-	post_conns[0] = 1;
-	delays[0] = 50;
-}
+void init_conns_from_file();
 
-void ini_neurs_from_file(){
-	V_ms[0] = 32.9066f;
-	V_ms[1] = 32.9066f;
-
-	V_ms_last[0] = 32.906693f;
-	V_ms_last[1] = 32.906693f;
-
-	m_chs[0] = 0.913177f;
-	n_chs[0] = 0.574678f;
-	h_chs[0] = 0.223994f;
-
-	m_chs[1] = 0.913177f;
-	n_chs[1] = 0.574678f;
-	h_chs[1] = 0.223994f;
-
-	I_syns[0] = 0.0f;
-	I_syns[1] = 0.0f;
-	I_syns_[0] = 0.0f;
-	I_syns_[1] = 0.0f;
-	I_es[0] = 5.27f;
-	I_es[1] = 0.0f;
-}
+void init_neurs_from_file();
