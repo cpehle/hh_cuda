@@ -8,7 +8,6 @@
 
 float* V_ms;
 float* V_ms_last;
-float* V_ms_last_;
 float* m_chs;
 float* n_chs;
 float* h_chs;
@@ -43,7 +42,6 @@ float h1, h2, h3, h4;
 void malloc_neur_memory(){
 	V_ms = new float[Nneur];
 	V_ms_last = new float[Nneur];
-	V_ms_last_ = new float[Nneur];
 	m_chs = new float[Nneur];
 	n_chs = new float[Nneur];
 	h_chs = new float[Nneur];
@@ -78,18 +76,15 @@ void init_conns_from_file(){
 	weights[0] = 20.0f;
 	pre_conns[0] = 0;
 	post_conns[0] = 1;
-	delays[0] = 2;
+	delays[0] = 50;
 }
 
 void ini_neurs_from_file(){
 	V_ms[0] = 32.9066f;
 	V_ms[1] = 32.9066f;
 
-	V_ms_last[0] = 32.9067f;
-	V_ms_last[1] = 32.9067f;
-
-	V_ms_last_[0] = 32.906693f;
-	V_ms_last_[1] = 32.906693f;
+	V_ms_last[0] = 32.906693f;
+	V_ms_last[1] = 32.906693f;
 
 	m_chs[0] = 0.913177f;
 	n_chs[0] = 0.574678f;

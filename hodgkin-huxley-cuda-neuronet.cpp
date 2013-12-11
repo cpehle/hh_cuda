@@ -5,7 +5,7 @@
 #include <cmath>
 #include "hodgkin-huxley-cuda-neuronet.h"
 
-float h = 0.05f;
+float h = 0.02f;
 float SimulationTime = 50.0f;
 
 using namespace std;
@@ -93,20 +93,19 @@ int main(){
 	res_file.open("res.csv");
 	int neur;
 	for (int t = 1; t < T_sim; t++){
-		res_file << t*h << "; " << V_ms[0] << "; " << V_ms[1] << "; " << n_chs[0] << "; " << m_chs[0] << "; " << h_chs[0] << "; "
-				<< I_psns[0] << "; " << ys[0] << "; " << endl;
+		res_file << t*h << "; " << V_ms[0] << "; " << V_ms[1] << "; " << n_chs[1] << "; " << m_chs[1] << "; " << h_chs[1] << "; "
+				<< I_psns[1] << "; " << ys[1] << "; " << endl;
 
 		for (int n = 0; n < Nneur; n++){
 			hod_hux_RK4(n);
 			// checking if there's spike on neuron
-			if (V_ms[n] > V_peak && V_ms_last[n] > V_ms[n] && V_ms_last_[n] <= V_ms_last[n]){
+			if (V_ms[n] > V_peak && V_m > V_ms[n] && V_ms_last[n] <= V_m){
 				spike_times[spike_arr_dim*num_spikes[n] + n] = t;
 				num_spikes[n]++;
 //				cout << t*h << endl;
 //				cout << "V_m: " << V_ms[n] << " V_m_last: " << V_ms_last[n] << " V_last_: " << V_ms_last_[n] << endl;
 			}
-			V_ms_last_[n] = V_ms_last[n];
-			V_ms_last[n] = V_ms[n];
+			V_ms_last[n] = V_m;
 			I_syns[n] = 0.0f;
 		}
 

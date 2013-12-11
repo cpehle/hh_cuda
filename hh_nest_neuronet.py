@@ -46,8 +46,10 @@ conn = nest.GetConnections()
 print conn
 con_file.write(str(len(conn))+"\n")
 statuses = nest.GetStatus(conn)
+min_el = min(nest.GetLeaves(l)[0])
 for i, stat in zip(conn, statuses):
-    writer.writerow([int(i[0]-1), int(i[1]-1), stat['delay']])
+    print i[0]
+    writer.writerow([int(i[0]-min_el), int(i[1]-min_el), stat['delay']])
 con_file.close()
 
 sd = nest.Create('spike_detector')

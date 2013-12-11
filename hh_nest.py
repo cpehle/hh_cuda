@@ -5,7 +5,7 @@ import matplotlib.pylab as pl
 
 
 Tsim = 50
-h = 0.1
+h = 0.02
 
 I = 5.27
 
@@ -15,11 +15,14 @@ nest.SetDefaults('hh_psc_alpha', params={'E_L': -54.4, 'E_Na': 55., 'C_m': 1., '
                                          'Act_h': 0.223994, 'Act_m': 0.913177, 'Inact_n': 0.574676, 'V_m': 32.906693})
 
 neuron = nest.Create('hh_psc_alpha', params={'I_e': I})
-p = nest.Create('poisson_generator')
-nest.SetStatus(p, params={'rate': 10.})
+psn_neuron = nest.Create('hh_psc_alpha')
+nest.Connect(neuron, psn_neuron, params={"weight": 20.})
+#p = nest.Create('poisson_generator')
+#nest.SetStatus(p, params={'rate': 10.})
 #nest.Connect(p, neuron, params={'weight': 1.})
+
 mm = nest.Create('multimeter', params={'interval': h, 'record_from': ['V_m', 'I_ex', 'Inact_n', 'Act_m', 'Act_h']})
-nest.ConvergentConnect(mm, neuron)
+nest.ConvergentConnect(mm, psn_neuron)
 nest.Simulate(Tsim)
 
 mm_events = nest.GetStatus(mm)[0]['events']
@@ -48,7 +51,7 @@ ax0 = pl.subplot(211)
 ax1 = pl.subplot(212, sharex=ax0)
     
 ax0.plot(mm_events['times'], mm_events['V_m'])
-ax0.plot(t, V_mean_pre)
+ax0.plot(t, V_mean_post)
 ax0.legend(['nest_V_m', 'V_m'])
 
 ax1.plot(mm_events['times'], mm_events['Inact_n'])
