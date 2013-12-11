@@ -6,7 +6,7 @@ import matplotlib.pylab as pl
 I = 5.27
 
 Tsim = 50
-h = 0.05
+h = 0.1
 peak_variables = {'Act_h': 0.22399445261588857, 
                   'Act_m': 0.91317780810919347,
                   'Inact_n': 0.57467683928571844,

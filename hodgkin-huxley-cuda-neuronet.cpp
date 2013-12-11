@@ -5,7 +5,7 @@
 #include <cmath>
 #include "hodgkin-huxley-cuda-neuronet.h"
 
-float h = 0.05f;
+float h = 0.1f;
 float SimulationTime = 50.0f;
 
 using namespace std;
@@ -19,7 +19,7 @@ float E_K   = -77.0f;
 float E_Na  = 55.0f;
 float E_L   = -54.4f;
 
-float V_peak = 30.0f;
+float V_peak = 20.0f;
 
 //connection parameters
 float tau_psc = 0.2f;
@@ -91,18 +91,19 @@ int main(){
 	init_conns_from_file();
 	ofstream res_file;
 	res_file.open("res.csv");
-
+	int neur;
 	for (int t = 1; t < T_sim; t++){
-		res_file << t*h << "; " << V_ms[0] << "; " << V_ms[1] << "; " << n_chs[0] << "; " << m_chs[0] << "; " << h_chs[0] << "; " << endl;
+		res_file << t*h << "; " << V_ms[0] << "; " << V_ms[1] << "; " << n_chs[0] << "; " << m_chs[0] << "; " << h_chs[0] << "; "
+				<< I_psns[0] << "; " << ys[0] << "; " << endl;
 
 		for (int n = 0; n < Nneur; n++){
 			hod_hux_RK4(n);
 			// checking if there's spike on neuron
-			if (V_ms[n] > V_peak && V_ms_last[n] > V_ms[n] && V_ms_last_[n] < V_ms_last[n]){
+			if (V_ms[n] > V_peak && V_ms_last[n] > V_ms[n] && V_ms_last_[n] <= V_ms_last[n]){
 				spike_times[spike_arr_dim*num_spikes[n] + n] = t;
 				num_spikes[n]++;
-				cout << t*h << endl;
-				cout << "V_m: " << V_ms[n] << " V_m_last: " << V_ms_last[n] << " V_last_: " << V_ms_last_[n] << endl;
+//				cout << t*h << endl;
+//				cout << "V_m: " << V_ms[n] << " V_m_last: " << V_ms_last[n] << " V_last_: " << V_ms_last_[n] << endl;
 			}
 			V_ms_last_[n] = V_ms_last[n];
 			V_ms_last[n] = V_ms[n];
@@ -111,7 +112,17 @@ int main(){
 		for (int s = 0; s < Ncon; s++){
 			I_psns[s]  = (ys[s]*h + I_psns[s])*exp_psc;
 			ys[s] *= exp_psc;
-
+			neur = pre_conns[s];
+			// if we processed less spikes than there is in presynaptic neuron
+			// we need to check are there new spikes at this moment of time
+			if (num_spk_proc[s] < num_spikes[neur]){
+//				cout << "Need to check for new spikes" << endl;
+				if (spike_times[spike_arr_dim*num_spk_proc[s] + neur] == t - delays[s]){
+					ys[s] += (exp(1.0f)/tau_psc)*weights[s];
+					num_spk_proc[s]++;
+//					cout << "Spike processed! Time: " << t*h << endl;
+				}
+			}
 		}
 	}
 	res_file.close();

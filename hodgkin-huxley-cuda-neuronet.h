@@ -23,9 +23,11 @@ int* num_spikes;  // numver of spikes on eash neuron
 
 float* ys;
 float* I_psns; // partial postsynaptic current on each synapse
+float* weights;
 int* pre_conns;
 int* post_conns;
 int* delays; // delays in integration steps
+int* num_spk_proc; // number of processed spikes by each synapse
 
 int Nneur = 2;
 int Ncon = 1;
@@ -62,14 +64,18 @@ void malloc_neur_memory(){
 void malloc_conn_memory(){
 	ys = new float[Ncon];
 	I_psns = new float[Ncon];
+	weights = new float[Ncon];
 	pre_conns = new int[Ncon];
 	post_conns = new int[Ncon];
 	delays = new int[Ncon];
+	num_spk_proc = new int[Ncon];
+	memset(num_spk_proc, 0, Ncon*sizeof(int));
 }
 
 void init_conns_from_file(){
 	ys[0] = 0.0f;
 	I_psns[0] = 0.0f;
+	weights[0] = 1.0f;
 	pre_conns[0] = 0;
 	post_conns[0] = 1;
 	delays[0] = 0.0f;
