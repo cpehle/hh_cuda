@@ -2,9 +2,10 @@
 #include <iostream>
 #include <fstream>
 #include <cmath>
+#include <cstdlib>
 #include "hodgkin-huxley-cuda-neuronet.h"
 
-float h = 0.1f;
+float h = 0.05f;
 float SimulationTime = 500.0f;
 
 using namespace std;
@@ -24,6 +25,8 @@ float V_peak = 20.0f;
 float tau_psc = 0.2f;
 float exp_psc = exp(-h/tau_psc);
 float w_n = 1.0f;
+float w_p = 2.0f;
+float rate = 400.0f;
 
 float hh_Vm(float V, float n_ch, float m_ch, float h_ch, float I_syn, float I_e){
 	return (I_e - g_K*(V - E_K)*n_ch*n_ch*n_ch*n_ch - g_Na*(V - E_Na)*m_ch*m_ch*m_ch*h_ch - g_L*(V - E_L) + I_syn)*h/Cm;
@@ -90,12 +93,20 @@ int main(){
 	ofstream oscill_file, rastr_file;
 	oscill_file.open("oscill.csv");
 	rastr_file.open("rastr.csv");
-	int neur;
 	for (int t = 1; t < T_sim; t++){
 		oscill_file << t*h << "; " << V_ms[2] << "; " << V_ms[6] << "; " << n_chs[6] << "; " << m_chs[6] << "; " << h_chs[6] << "; "
-				<< I_psns[0] << "; " << ys[0] << "; " << endl;
+				<< I_poisson[2] << "; " << y_poisson[2] << "; " << endl;
 
 		for (int n = 0; n < Nneur; n++){
+			I_poisson[n]  = (y_poisson[n]*h + I_poisson[n])*exp_psc;
+			y_poisson[n] *= exp_psc;
+			// if where is poisson impulse on neuron
+			if (poisson_times[Nneur*poisson_processed[n] + n] == t){
+				y_poisson[n] += (exp(1.0f)/tau_psc)*w_p;
+				poisson_processed[n]++;
+			}
+			I_syns[n] += I_poisson[n];
+
 			hod_hux_RK4(n);
 			// checking if there's spike on neuron
 			if (V_ms[n] > V_peak && V_m > V_ms[n] && V_ms_last[n] <= V_m){
@@ -111,7 +122,7 @@ int main(){
 		for (int s = 0; s < Ncon; s++){
 			I_psns[s]  = (ys[s]*h + I_psns[s])*exp_psc;
 			ys[s] *= exp_psc;
-			neur = pre_conns[s];
+			int neur = pre_conns[s];
 			// if we processed less spikes than there is in presynaptic neuron
 			// we need to check are there new spikes at this moment of time
 			if (num_spk_proc[s] < num_spikes[neur]){
@@ -153,4 +164,28 @@ void init_neurs_from_file(){
 		h_chs[n] = 0.223994f;
 		I_es[n] = 5.27f;
 	}
+	int* num = new int[Nneur];
+	int* poisson_impulse_times = new int[T_sim*Nneur];
+	memset(num, 0, sizeof(int)*Nneur);
+	memset(poisson_impulse_times, 0, T_sim*Nneur*sizeof(int));
+
+	// number of poisson impulses
+	int num_inpulses = rate*SimulationTime/1000.0f;
+	for (int i = 0; i < num_inpulses; i++){
+		for (int n = 0; n < Nneur; n++){
+			poisson_impulse_times[Nneur*(rand() % T_sim) + n] = 1;
+		}
+	}
+
+	for (int t = 0; t < T_sim; t++){
+		for (int n = 0; n < Nneur; n++){
+			if (poisson_impulse_times[Nneur*t + n]){
+				poisson_times[Nneur*num[n] + n] = t;
+				num[n]++;
+			}
+		}
+	}
+
+	free(poisson_impulse_times);
+	free(num);
 }

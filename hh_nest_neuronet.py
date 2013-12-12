@@ -13,9 +13,9 @@ import csv
 
 
 Tsim = 500
-h = 0.1
+h = 0.05
 
-N = 10
+N = 100
 p_con = 0.1
 
 I = 5.27
@@ -48,7 +48,6 @@ con_file.write(str(len(conn))+"\n")
 statuses = nest.GetStatus(conn)
 min_el = min(nest.GetLeaves(l)[0])
 for i, stat in zip(conn, statuses):
-    print i[0]
     writer.writerow([int(i[0]-min_el), int(i[1]-min_el), stat['delay']])
 con_file.close()
 
@@ -58,7 +57,7 @@ nest.ConvergentConnect(nest.GetLeaves(l)[0], sd)
 nest.Simulate(Tsim)
 
 events = nest.GetStatus(sd)[0]["events"]
-pl.plot(events['times'], events['senders'], '.')
+pl.plot(events['times'], events['senders']-min_el, '.')
 pl.xlabel("Time, ms")
 pl.ylabel("Neuron index")
 pl.title("NEST")

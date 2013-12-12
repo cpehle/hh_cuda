@@ -16,6 +16,9 @@ float* I_syns_; // full postsynaptic current on each neuron
 float* I_es;
 float* I_poisson;
 float* y_poisson;
+int* poisson_times;
+int* poisson_processed;
+
 
 int* spike_times; // spike times for each neuron
 int* num_spikes;  // numver of spikes on eash neuron
@@ -28,7 +31,7 @@ int* post_conns;
 int* delays; // delays in integration steps
 int* num_spk_proc; // number of processed spikes by each synapse
 
-int Nneur = 10;
+int Nneur = 100;
 int Ncon;
 int T_sim;
 int spike_arr_dim;
@@ -50,6 +53,8 @@ void malloc_neur_memory(){
 	I_es = new float[Nneur];
 	I_poisson = new float[Nneur];
 	y_poisson = new float[Nneur];
+	poisson_times = new int[Nneur*T_sim/5];
+	poisson_processed = new int[Nneur];
 	// if num-th spike occur at a time t on n-th neuron then,
 	// t is stored in element with index T_sim/5*num + n
 	// spike_times[T_sim/5*num + n] = t
@@ -60,6 +65,7 @@ void malloc_neur_memory(){
 	memset(I_poisson, 0, Nneur*sizeof(float));
 	memset(y_poisson, 0, Nneur*sizeof(float));
 	memset(num_spikes, 0, Nneur*sizeof(int));
+	memset(poisson_processed, 0, Nneur*sizeof(int));
 }
 
 void malloc_conn_memory(){
