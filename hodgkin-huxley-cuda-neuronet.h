@@ -31,7 +31,7 @@ int* post_conns;
 int* delays; // delays in integration steps
 int* num_spk_proc; // number of processed spikes by each synapse
 
-int Nneur = 100;
+int Nneur = 10;
 int Ncon;
 int T_sim;
 int spike_arr_dim;
@@ -79,6 +79,14 @@ void malloc_conn_memory(){
 	memset(ys, 0, Ncon*sizeof(int));
 	memset(I_psns, 0, Ncon*sizeof(int));
 	memset(num_spk_proc, 0, Ncon*sizeof(int));
+}
+
+int get_random(int max){
+	if (RAND_MAX == 32767){
+		return ((RAND_MAX + 1)*(long)rand() + rand()) % max;
+	} else {
+		return rand() % max;
+	}
 }
 
 void init_conns_from_file();

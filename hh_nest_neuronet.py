@@ -13,9 +13,9 @@ import csv
 
 
 Tsim = 500
-h = 0.05
+h = 0.1
 
-N = 100
+N = 10
 p_con = 0.1
 
 I = 5.27

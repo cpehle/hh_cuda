@@ -3,9 +3,10 @@
 #include <fstream>
 #include <cmath>
 #include <cstdlib>
+#include <ctime>
 #include "hodgkin-huxley-cuda-neuronet.h"
 
-float h = 0.05f;
+float h = 0.1f;
 float SimulationTime = 500.0f;
 
 using namespace std;
@@ -26,7 +27,8 @@ float tau_psc = 0.2f;
 float exp_psc = exp(-h/tau_psc);
 float w_n = 1.0f;
 float w_p = 2.0f;
-float rate = 400.0f;
+float exp_w_p = (exp(1.0f)/tau_psc)*w_p;
+float rate = 200.0f;
 
 float hh_Vm(float V, float n_ch, float m_ch, float h_ch, float I_syn, float I_e){
 	return (I_e - g_K*(V - E_K)*n_ch*n_ch*n_ch*n_ch - g_Na*(V - E_Na)*m_ch*m_ch*m_ch*h_ch - g_L*(V - E_L) + I_syn)*h/Cm;
@@ -93,6 +95,7 @@ int main(){
 	ofstream oscill_file, rastr_file;
 	oscill_file.open("oscill.csv");
 	rastr_file.open("rastr.csv");
+	clock_t start = clock();
 	for (int t = 1; t < T_sim; t++){
 		oscill_file << t*h << "; " << V_ms[2] << "; " << V_ms[6] << "; " << n_chs[6] << "; " << m_chs[6] << "; " << h_chs[6] << "; "
 				<< I_poisson[2] << "; " << y_poisson[2] << "; " << endl;
@@ -102,10 +105,10 @@ int main(){
 			y_poisson[n] *= exp_psc;
 			// if where is poisson impulse on neuron
 			if (poisson_times[Nneur*poisson_processed[n] + n] == t){
-				y_poisson[n] += (exp(1.0f)/tau_psc)*w_p;
+				y_poisson[n] += exp_w_p;
 				poisson_processed[n]++;
 			}
-			I_syns[n] += I_poisson[n];
+//			I_syns[n] += I_poisson[n];
 
 			hod_hux_RK4(n);
 			// checking if there's spike on neuron
@@ -127,13 +130,15 @@ int main(){
 			// we need to check are there new spikes at this moment of time
 			if (num_spk_proc[s] < num_spikes[neur]){
 				if (spike_times[Nneur*num_spk_proc[s] + neur] == t - delays[s]){
-					ys[s] += (exp(1.0f)/tau_psc)*weights[s];
+					ys[s] += weights[s];
 					num_spk_proc[s]++;
 				}
 			}
 			I_syns[post_conns[s]] += I_psns[s];
 		}
 	}
+	float time = ((float)clock() - (float)start)*1000./CLOCKS_PER_SEC;
+	cout << "Elapsed time: " << time << endl;
 	oscill_file.close();
 	rastr_file.close();
 	cout << "Finished!" << endl;
@@ -150,7 +155,7 @@ void init_conns_from_file(){
 	for (int s = 0; s < Ncon; s++){
 		con_file >> pre_conns[s] >> post_conns[s] >> delay;
 		delays[s] = delay/h;
-		weights[s] = w_n;
+		weights[s] = (exp(1.0f)/tau_psc)*w_n;
 	}
 }
 
@@ -173,7 +178,7 @@ void init_neurs_from_file(){
 	int num_inpulses = rate*SimulationTime/1000.0f;
 	for (int i = 0; i < num_inpulses; i++){
 		for (int n = 0; n < Nneur; n++){
-			poisson_impulse_times[Nneur*(rand() % T_sim) + n] = 1;
+			poisson_impulse_times[Nneur*(get_random(T_sim)) + n] = 1;
 		}
 	}
 
