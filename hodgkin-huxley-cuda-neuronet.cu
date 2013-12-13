@@ -88,35 +88,55 @@ void hod_hux_RK4(int n){
 	h_chs[n] = h_ch + (h1 + 2.0f*h2 + 2.0f*h3 + h4)/6.0f;
 }
 
+//__global__ void integrate_synapses(float* y, float* I_psc, float* I_syn, float* weight, float* delay, float* pre_conn, float* post_conn,
+//		int* spike_time, int* num_spike_proc, int* num_spike, float h, float exp_psc){
+//	int s = blockDim.x*blockIdx.x + threadIdx.x;
+//	I_psc[s]  = (y[s]*h + I_psc[s])*exp_psc;
+//	y[s] *= exp_psc;
+//	int neur = pre_conn[s];
+//	// if we processed less spikes than there is in presynaptic neuron
+//	// we need to check are there new spikes at this moment of time
+//	if (num_spike_proc[s] < num_spikes_neur[neur]){
+//		if (spike_times[Nneur*num_spikes_syn[s] + neur] == t - delays[s]){
+//			ys[s] += weights[s];
+//			num_spikes_syn[s]++;
+//		}
+//	}
+//	I_syns[post_conns[s]] += I_pscs[s];
+//
+//}
+
+__global__ void integrate_neurons(){
+
+}
+
 int main(){
 	T_sim = SimulationTime/h;
 	init_neurs_from_file();
 	init_conns_from_file();
 	copy2device();
-	ofstream oscill_file, rastr_file;
+   ofstream oscill_file, rastr_file;
 	oscill_file.open("oscill.csv");
-	rastr_file.open("rastr.csv");
 	clock_t start = clock();
 	for (int t = 1; t < T_sim; t++){
 		oscill_file << t*h << "; " << V_ms[2] << "; " << V_ms[6] << "; " << n_chs[6] << "; " << m_chs[6] << "; " << h_chs[6] << "; "
-				<< I_poisson[2] << "; " << y_poisson[2] << "; " << endl;
+						<< I_psns[2] << "; " << y_psns[2] << "; " << endl;
 
 		for (int n = 0; n < Nneur; n++){
-			I_poisson[n]  = (y_poisson[n]*h + I_poisson[n])*exp_psc;
-			y_poisson[n] *= exp_psc;
+			I_psns[n]  = (y_psns[n]*h + I_psns[n])*exp_psc;
+			y_psns[n] *= exp_psc;
 			// if where is poisson impulse on neuron
-			if (poisson_times[Nneur*poisson_processed[n] + n] == t){
-				y_poisson[n] += exp_w_p;
-				poisson_processed[n]++;
+			if (psn_times[Nneur*num_psn[n] + n] == t){
+				y_psns[n] += exp_w_p;
+				num_psn[n]++;
 			}
-//			I_syns[n] += I_poisson[n];
+			I_syns[n] += I_psns[n];
 
 			hod_hux_RK4(n);
 			// checking if there's spike on neuron
 			if (V_ms[n] > V_peak && V_m > V_ms[n] && V_ms_last[n] <= V_m){
-				spike_times[Nneur*num_spikes[n] + n] = t;
-				num_spikes[n]++;
-				rastr_file << t*h << "; " << n << "; " << endl;
+				spike_times[Nneur*num_spikes_neur[n] + n] = t;
+				num_spikes_neur[n]++;
 			}
 			V_ms_last[n] = V_m;
 			I_syns_last[n] = I_syns[n];
@@ -124,24 +144,24 @@ int main(){
 		}
 
 		for (int s = 0; s < Ncon; s++){
-			I_psns[s]  = (ys[s]*h + I_psns[s])*exp_psc;
+			I_pscs[s]  = (ys[s]*h + I_pscs[s])*exp_psc;
 			ys[s] *= exp_psc;
 			int neur = pre_conns[s];
 			// if we processed less spikes than there is in presynaptic neuron
 			// we need to check are there new spikes at this moment of time
-			if (num_spk_proc[s] < num_spikes[neur]){
-				if (spike_times[Nneur*num_spk_proc[s] + neur] == t - delays[s]){
+			if (num_spikes_syn[s] < num_spikes_neur[neur]){
+				if (spike_times[Nneur*num_spikes_syn[s] + neur] == t - delays[s]){
 					ys[s] += weights[s];
-					num_spk_proc[s]++;
+					num_spikes_syn[s]++;
 				}
 			}
-			I_syns[post_conns[s]] += I_psns[s];
+			I_syns[post_conns[s]] += I_pscs[s];
 		}
 	}
+	oscill_file.close();
 	float time = ((float)clock() - (float)start)*1000./CLOCKS_PER_SEC;
 	cout << "Elapsed time: " << time << endl;
-	oscill_file.close();
-	rastr_file.close();
+	save2file();
 	cout << "Finished!" << endl;
 	return 0;
 }
@@ -184,7 +204,7 @@ void init_neurs_from_file(){
 
 		for (int t = 0; t < T_sim; t++){
 			if (poisson_impulse_times[t]){
-				poisson_times[Nneur*num[n] + n] = t;
+				psn_times[Nneur*num[n] + n] = t;
 				num[n]++;
 			}
 		}
@@ -193,4 +213,10 @@ void init_neurs_from_file(){
 
 	free(poisson_impulse_times);
 	free(num);
+}
+
+void save2file(){
+	ofstream rastr_file;
+	rastr_file.open("rastr.csv");
+	rastr_file.close();
 }
