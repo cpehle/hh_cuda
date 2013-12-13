@@ -12,7 +12,7 @@ import matplotlib.pylab as pl
 import csv
 
 
-Tsim = 500
+Tsim = 1000
 h = 0.1
 
 N = 10
@@ -43,7 +43,6 @@ tp.ConnectLayers(l,l,conn_dict)
 con_file = open("nn_params.csv", 'w')
 writer = csv.writer(con_file, delimiter=' ')
 conn = nest.GetConnections()
-print conn
 con_file.write(str(len(conn))+"\n")
 statuses = nest.GetStatus(conn)
 min_el = min(nest.GetLeaves(l)[0])

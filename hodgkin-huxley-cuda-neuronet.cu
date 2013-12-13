@@ -7,7 +7,7 @@
 #include "hodgkin-huxley-cuda-neuronet.h"
 
 float h = 0.1f;
-float SimulationTime = 500.0f;
+float SimulationTime = 1000.0f; // in ms
 
 using namespace std;
 
@@ -51,7 +51,7 @@ void hod_hux_RK4(int n){
 	n_ch = n_chs[n];
 	m_ch = m_chs[n];
 	h_ch = h_chs[n];
-	v1 = hh_Vm(V_ms[n], n_chs[n], m_chs[n], h_chs[n], I_syns_[n], I_es[n]);
+	v1 = hh_Vm(V_ms[n], n_chs[n], m_chs[n], h_chs[n], I_syns_last[n], I_es[n]);
 	n1 = hh_n_ch(V_ms[n], n_chs[n]);
 	m1 = hh_m_ch(V_ms[n], m_chs[n]);
 	h1 = hh_h_ch(V_ms[n], h_chs[n]);
@@ -60,7 +60,7 @@ void hod_hux_RK4(int n){
 	m_chs[n] = m_ch + m1/2.0f;
 	h_chs[n] = h_ch + h1/2.0f;
 
-	v2 = hh_Vm(V_ms[n], n_chs[n], m_chs[n], h_chs[n], (I_syns[n] + I_syns_[n])/2.0f, I_es[n]);
+	v2 = hh_Vm(V_ms[n], n_chs[n], m_chs[n], h_chs[n], (I_syns[n] + I_syns_last[n])/2.0f, I_es[n]);
 	n2 = hh_n_ch(V_ms[n], n_chs[n]);
 	m2 = hh_m_ch(V_ms[n], m_chs[n]);
 	h2 = hh_h_ch(V_ms[n], h_chs[n]);
@@ -69,7 +69,7 @@ void hod_hux_RK4(int n){
 	m_chs[n] = m_ch + m2/2.0f;
 	h_chs[n] = h_ch + h2/2.0f;
 
-	v3 = hh_Vm(V_ms[n], n_chs[n], m_chs[n], h_chs[n], (I_syns[n] + I_syns_[n])/2.0f, I_es[n]);
+	v3 = hh_Vm(V_ms[n], n_chs[n], m_chs[n], h_chs[n], (I_syns[n] + I_syns_last[n])/2.0f, I_es[n]);
 	n3 = hh_n_ch(V_ms[n], n_chs[n]);
 	m3 = hh_m_ch(V_ms[n], m_chs[n]);
 	h3 = hh_h_ch(V_ms[n], h_chs[n]);
@@ -92,6 +92,7 @@ int main(){
 	T_sim = SimulationTime/h;
 	init_neurs_from_file();
 	init_conns_from_file();
+	copy2device();
 	ofstream oscill_file, rastr_file;
 	oscill_file.open("oscill.csv");
 	rastr_file.open("rastr.csv");
@@ -118,7 +119,7 @@ int main(){
 				rastr_file << t*h << "; " << n << "; " << endl;
 			}
 			V_ms_last[n] = V_m;
-			I_syns_[n] = I_syns[n];
+			I_syns_last[n] = I_syns[n];
 			I_syns[n] = 0.0f;
 		}
 
@@ -170,25 +171,24 @@ void init_neurs_from_file(){
 		I_es[n] = 5.27f;
 	}
 	int* num = new int[Nneur];
-	int* poisson_impulse_times = new int[T_sim*Nneur];
+	int* poisson_impulse_times = new int[T_sim];
 	memset(num, 0, sizeof(int)*Nneur);
-	memset(poisson_impulse_times, 0, T_sim*Nneur*sizeof(int));
+	memset(poisson_impulse_times, 0, T_sim*sizeof(int));
 
 	// number of poisson impulses
 	int num_inpulses = rate*SimulationTime/1000.0f;
-	for (int i = 0; i < num_inpulses; i++){
-		for (int n = 0; n < Nneur; n++){
-			poisson_impulse_times[Nneur*(get_random(T_sim)) + n] = 1;
+	for (int n = 0; n < Nneur; n++){
+		for (int i = 0; i < num_inpulses; i++){
+			poisson_impulse_times[get_random(T_sim)] = 1;
 		}
-	}
 
-	for (int t = 0; t < T_sim; t++){
-		for (int n = 0; n < Nneur; n++){
-			if (poisson_impulse_times[Nneur*t + n]){
+		for (int t = 0; t < T_sim; t++){
+			if (poisson_impulse_times[t]){
 				poisson_times[Nneur*num[n] + n] = t;
 				num[n]++;
 			}
 		}
+		memset(poisson_impulse_times, 0, T_sim*sizeof(int));
 	}
 
 	free(poisson_impulse_times);
