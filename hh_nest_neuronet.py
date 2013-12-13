@@ -12,10 +12,10 @@ import matplotlib.pylab as pl
 import csv
 
 
-Tsim = 1000
+Tsim = 2000.
 h = 0.1
 
-N = 10
+N = 1024
 p_con = 0.1
 
 I = 5.27
@@ -26,7 +26,7 @@ rate = 3620.0/T #Hz
 
 np.random.seed(seed=0)
 nest.ResetKernel()
-nest.SetKernelStatus({'resolution': h, 'local_num_threads': 1})
+nest.SetKernelStatus({'resolution': h, 'local_num_threads': 8})
 nest.SetDefaults('hh_psc_alpha', params={'E_L': -54.4, 'E_Na': 55., 'C_m': 1., 'g_K': 36., 'g_L': 0.3, 'g_Na': 120., 
                                          'Act_h': 0.223994, 'Act_m': 0.913177, 'Inact_n': 0.574676, 
                                          'I_e': I, 'V_m': 32.906693})

@@ -20,7 +20,7 @@ float* I_es;
 float* I_psns;
 float* y_psns;
 int* psn_times;
-int* num_psn;
+int* num_psns;
 
 float* V_ms_dev;
 float* V_ms_last_dev;
@@ -33,7 +33,7 @@ float* I_es_dev;
 float* I_psns_dev;
 float* y_psns_dev;
 int* psn_times_dev;
-int* num_psn_dev;
+int* num_psns_dev;
 
 int* spike_times; // spike times for each neuron
 int* num_spikes_neur;  // numver of spikes on eash neuron
@@ -57,7 +57,7 @@ int* post_conns_dev;
 int* delays_dev;
 int* num_spikes_syn_dev;
 
-int Nneur = 10;
+int Nneur = 1024;
 int Ncon;
 
 int T_sim;
@@ -69,11 +69,6 @@ int T_sim_part = 100;
 // defined by poisson frequence
 // T_sim_part_poisson = 1000/(h*max_rate)
 int T_sim_part_psn = 40;
-float V_m, n_ch, m_ch, h_ch;
-float v1, v2, v3, v4;
-float n1, n2, n3, n4;
-float m1, m2, m3, m4;
-float h1, h2, h3, h4;
 
 void malloc_neur_memory(){
 	V_ms = new float[Nneur];
@@ -87,7 +82,7 @@ void malloc_neur_memory(){
 	I_psns = new float[Nneur];
 	y_psns = new float[Nneur];
 	psn_times = new int[Nneur*T_sim/T_sim_part_psn];
-	num_psn = new int[Nneur];
+	num_psns = new int[Nneur];
 	// if num-th spike occur at a time t on n-th neuron then,
 	// t is stored in element with index Nneur*num + n
 	// spike_times[Nneur*num + n] = t
@@ -98,7 +93,7 @@ void malloc_neur_memory(){
 	memset(I_psns, 0, Nneur*sizeof(float));
 	memset(y_psns, 0, Nneur*sizeof(float));
 	memset(num_spikes_neur, 0, Nneur*sizeof(int));
-	memset(num_psn, 0, Nneur*sizeof(int));
+	memset(num_psns, 0, Nneur*sizeof(int));
 }
 
 void malloc_conn_memory(){
@@ -128,7 +123,7 @@ void copy2device(){
 	cudaMalloc((void**) &I_psns_dev, n_fsize);
 	cudaMalloc((void**) &y_psns_dev, n_fsize);
 	cudaMalloc((void**) &psn_times_dev, n_isize*T_sim/T_sim_part_psn);
-	cudaMalloc((void**) &num_psn_dev, n_isize);
+	cudaMalloc((void**) &num_psns_dev, n_isize);
 
 	cudaMalloc((void**) &spike_times_dev, n_isize*T_sim/T_sim_part);
 	cudaMalloc((void**) &num_spikes_neur_dev, n_isize);
@@ -154,7 +149,7 @@ void copy2device(){
 	cudaMemcpy(I_psns_dev, I_psns, n_fsize, cudaMemcpyHostToDevice);
 	cudaMemcpy(y_psns_dev, y_psns, n_fsize, cudaMemcpyHostToDevice);
 	cudaMemcpy(psn_times_dev, psn_times, n_isize*T_sim/T_sim_part_psn, cudaMemcpyHostToDevice);
-	cudaMemcpy(num_psn_dev, num_psn, n_isize, cudaMemcpyHostToDevice);
+	cudaMemcpy(num_psns_dev, num_psns, n_isize, cudaMemcpyHostToDevice);
 
 	cudaMemcpy(spike_times_dev, spike_times, n_isize*T_sim/T_sim_part, cudaMemcpyHostToDevice);
 	cudaMemcpy(num_spikes_neur_dev, num_spikes_neur, n_isize, cudaMemcpyHostToDevice);
