@@ -7,7 +7,7 @@ Created on 06.11.2013
 import csv
 import numpy as np
 import matplotlib.pyplot as pl
- 
+
 f = open('rastr.csv', "r")
 rdr = csv.reader(f,delimiter=";")
 times = []
@@ -26,7 +26,7 @@ ax00.set_ylim([0, max(neurons)])
 ax00.set_title(u"CUDA")
 ax00.set_ylabel(u"Номер нейрона")
 ax00.grid()
-hi = ax10.hist(times, bins = times[-1], histtype='step', color = 'b')
+hi = ax10.hist(times, bins = 1000, histtype='step', color = 'b')
 ax10.set_ylim(0., max(hi[0]))
 ax10.set_ylabel(u"Количество спайков в 1 мс")
 ax10.set_xlabel(u"Время, мс")

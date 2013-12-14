@@ -4,6 +4,8 @@ Created on 11.12.2013
 @author: postdoc3
 '''
 
+import matplotlib
+matplotlib.use("TkAgg")
 import nest
 import nest.voltage_trace
 import nest.topology as tp
@@ -15,7 +17,7 @@ import csv
 Tsim = 2000.
 h = 0.1
 
-N = 1024
+N = 4096
 p_con = 0.1
 
 I = 5.27
@@ -50,30 +52,30 @@ for i, stat in zip(conn, statuses):
     writer.writerow([int(i[0]-min_el), int(i[1]-min_el), stat['delay']])
 con_file.close()
 
-sd = nest.Create('spike_detector')
-nest.ConvergentConnect(nest.GetLeaves(l)[0], sd)
-
-nest.Simulate(Tsim)
-
-events = nest.GetStatus(sd)[0]["events"]
-pl.plot(events['times'], events['senders']-min_el, '.')
-pl.xlabel("Time, ms")
-pl.ylabel("Neuron index")
-pl.title("NEST")
-
-f = open('rastr.csv')
-rdr = csv.reader(f, delimiter=';')
-
-times = []
-neurons = []
-for sp in rdr:
-    times.append(sp[0])
-    neurons.append(sp[1])
-times = np.array(times, dtype='float')
-neurons = np.array(neurons, dtype='int')
-pl.figure()
-pl.plot(times, neurons, '.')
-pl.xlabel("Time, ms")
-pl.ylabel("Neuron index")
-pl.title("CUDA")
-pl.show()
+# sd = nest.Create('spike_detector')
+# nest.ConvergentConnect(nest.GetLeaves(l)[0], sd)
+# 
+# nest.Simulate(Tsim)
+# 
+# events = nest.GetStatus(sd)[0]["events"]
+# pl.plot(events['times'], events['senders']-min_el, '.')
+# pl.xlabel("Time, ms")
+# pl.ylabel("Neuron index")
+# pl.title("NEST")
+# 
+# f = open('rastr.csv')
+# rdr = csv.reader(f, delimiter=';')
+# 
+# times = []
+# neurons = []
+# for sp in rdr:
+#     times.append(sp[0])
+#     neurons.append(sp[1])
+# times = np.array(times, dtype='float')
+# neurons = np.array(neurons, dtype='int')
+# pl.figure()
+# pl.plot(times, neurons, '.')
+# pl.xlabel("Time, ms")
+# pl.ylabel("Neuron index")
+# pl.title("CUDA")
+# pl.show()
