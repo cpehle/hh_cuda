@@ -8,12 +8,12 @@
 #include "hodgkin-huxley-cuda-neuronet.h"
 
 float h = 0.1f;
-float SimulationTime = 2000000.0f; // in ms
+float SimulationTime = 6000000.0f; // in ms
 
-int T_sim_particular = 1000; // in time frames
+int T_sim_particular = 10000; // in time frames
 // T_sim_particular must be less than RAND_MAX which in Win32 is 32767, in gcc much greater
 
-int time_part_syn = 120;
+int time_part_syn = 100;
 // maximum part of simulating time for which is allocated memory
 // time_part_syn <= T[ms]/h[ms]
 // so the maximum number of spikes per neuron which can be processed is
@@ -86,10 +86,6 @@ __global__ void integrate_synapses(float* y, float* I_psc, float* I_syn, float* 
 		// if we processed less spikes than there is in presynaptic neuron
 		// we need to check are there new spikes at this moment of time
 		if (num_spike_syn[s] < num_spike_neur[neur]){
-//			if (t > 10 && num_spike_neur[neur] != 0){
-//				printf("pre: %i post: %i num_spike_syn: %i num_spike_neur: %i last_syn_spike_time: %i delay: %i time: %i \n",
-//						pre_conn[s], post_conn[s], num_spike_syn[s],  num_spike_neur[s], spike_time[Nneur*num_spike_syn[s] + neur], delay[s], t);
-//			}
 			if (spike_time[Nneur*num_spike_syn[s] + neur] == t - delay[s]){
 				y[s] += weight[s];
 				num_spike_syn[s]++;
@@ -178,15 +174,11 @@ int main(){
 	init_neurs_from_file();
 	init_conns_from_file();
 	copy2device();
-	ofstream rastr_file;
+	ofstream rastr_file, sp_times_file;
 	rastr_file.open("rastr.csv");
 	rastr_file.close();
-
-	ofstream sp_times_file;
-	sp_times_file.open("sp_times.txt");
-	sp_times_file.close();
-	sp_times_file.open("sp_times1.txt");
-	sp_times_file.close();
+//	sp_times_file.open("sp_times.txt");
+//	sp_times_file.close();
 
 	clock_t start = clock();
 	for (int t = 0; t < T_sim; t++){
@@ -197,7 +189,7 @@ int main(){
 				spike_times_dev, num_spikes_syn_dev, num_spikes_neur_dev, t, h, exp_psc, Nneur, Ncon);
 		cudaDeviceSynchronize();
 		if ((t % T_sim_particular) == 0){
-//			cout << t*h << endl;
+			cout << t*h << endl;
 			cudaMemcpy(spike_times, spike_times_dev, Nneur*sizeof(int)*T_sim_particular/time_part_syn, cudaMemcpyDeviceToHost);
 			cudaMemcpy(num_spikes_neur, num_spikes_neur_dev, Nneur*sizeof(int), cudaMemcpyDeviceToHost);
 			cudaMemcpy(num_spikes_syn, num_spikes_syn_dev, Ncon*sizeof(int), cudaMemcpyDeviceToHost);
@@ -216,10 +208,10 @@ int main(){
 	cudaMemcpy(spike_times, spike_times_dev, Nneur*sizeof(int)*T_sim_particular/time_part_syn, cudaMemcpyDeviceToHost);
 	cudaMemcpy(num_spikes_neur, num_spikes_neur_dev, Nneur*sizeof(int), cudaMemcpyDeviceToHost);
 	float time = ((float)clock() - (float)start)*1000./CLOCKS_PER_SEC;
-//	cout << "Elapsed time: " << time << endl;
+	cout << "Elapsed time: " << time << endl;
 
 	save2file();
-//	cout << "Finished!" << endl;
+	cout << "Finished!" << endl;
 	return 0;
 }
 
@@ -227,7 +219,7 @@ void init_conns_from_file(){
 	ifstream con_file;
 	con_file.open("nn_params.csv");
 	con_file >> Ncon;
-//	cout << "Number of connections: " << Ncon << endl;
+	cout << "Number of connections: " << Ncon << endl;
 	malloc_conn_memory();
 	float delay;
 	for (int s = 0; s < Ncon; s++){
@@ -241,19 +233,12 @@ void init_neurs_from_file(){
 	srand(0);
 	malloc_neur_memory();
 	for (int n = 0; n < Nneur; n++){
-//		V_ms[n] = 32.9066f;
-//		V_ms_last[n] = 32.9065f;
-//		n_chs[n] = 0.574678f;
-//		m_chs[n] = 0.913177f;
-//		h_chs[n] = 0.223994f;
-
+		V_ms[n] = 32.9066f;
+		V_ms_last[n] = 32.9065f;
+		n_chs[n] = 0.574678f;
+		m_chs[n] = 0.913177f;
+		h_chs[n] = 0.223994f;
 		I_es[n] = 5.27f;
-
-		V_ms[n] = -55.3676;
-		V_ms_last[n] = -55.7275f;
-		n_chs[n] = 0.393735;
-		m_chs[n] = 0.138146;
-		h_chs[n] = 0.43701;
 	}
 	init_poisson(0);
 }
@@ -284,29 +269,19 @@ void swap_spikes(int t){
 		}
 	}
 
-
+//	ofstream sp_times_file;
+//	sp_times_file.open("sp_times.txt", ios_base::app);
+//	sp_times_file << "========= time: " << t <<  " ==========" << endl;
 //	for (int n = 0; n < Nneur; n++){
-//		if ( num_spikes_neur[n] - min_spike_nums_syn[n] > 1){
-//			if ( num_spikes_neur[n] != 0){
-//				cout << "Nneur: " << n << " num_spikes: " << num_spikes_neur[n] <<
-//						" min_spike_num: " << min_spike_nums_syn[n] << " min_spike_time: " << spike_times[Nneur*min_spike_nums_syn[n] + n]*h
-//						<< " last_spike_time: " << spike_times[Nneur*(num_spikes_neur[n] - 1) + n]*h << endl;
+//		if (num_spikes_neur[n] != 0){
+//			sp_times_file << n << ": " << "min_spk_num: " << min_spike_nums_syn[n] << " times:";
+//			for (int sp_n = 0; sp_n < num_spikes_neur[n]; sp_n++){
+//				sp_times_file << spike_times[Nneur*sp_n + n] << " ";
 //			}
+//			sp_times_file << endl;
 //		}
 //	}
-	ofstream sp_times_file;
-	sp_times_file.open("sp_times.txt", ios_base::app);
-	sp_times_file << "========= time: " << t <<  " ==========" << endl;
-	for (int n = 0; n < Nneur; n++){
-		if (num_spikes_neur[n] != 0){
-			sp_times_file << n << ": " << "min_spk_num: " << min_spike_nums_syn[n] << " times:";
-			for (int sp_n = 0; sp_n < num_spikes_neur[n]; sp_n++){
-				sp_times_file << spike_times[Nneur*sp_n + n] << " ";
-			}
-			sp_times_file << endl;
-		}
-	}
-	sp_times_file.close();
+//	sp_times_file.close();
 
 	for (int n = 0; n < Nneur; n++){
 		for (int sp_n = 0; sp_n < min_spike_nums_syn[n]; sp_n++){
@@ -327,21 +302,6 @@ void swap_spikes(int t){
 	free(spike_times);
 	free(min_spike_nums_syn);
 	spike_times = spike_times_temp;
-
-
-//	ofstream sp_times_file1;
-//	sp_times_file1.open("sp_times1.txt", ios_base::app);
-//	sp_times_file1 << "========= time: " << t <<  " ==========" << endl;
-//	for (int n = 0; n < Nneur; n++){
-//		if (num_spikes_neur[n] != 0){
-//			sp_times_file1 << n << ": " << " times:";
-//			for (int sp_n = 0; sp_n < num_spikes_neur[n]; sp_n++){
-//				sp_times_file1 << spike_times[Nneur*sp_n + n] << " ";
-//			}
-//			sp_times_file1 << endl;
-//		}
-//	}
-//	sp_times_file1.close();
 }
 
 void init_poisson(int current_time){

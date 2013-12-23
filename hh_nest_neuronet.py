@@ -4,8 +4,6 @@ Created on 11.12.2013
 @author: postdoc3
 '''
 
-import matplotlib
-matplotlib.use("TkAgg")
 import nest
 import nest.voltage_trace
 import nest.topology as tp
@@ -17,7 +15,7 @@ import csv
 Tsim = 2000.
 h = 0.1
 
-N = 4096
+N = 100
 p_con = 0.1
 
 I = 5.27
@@ -51,7 +49,7 @@ min_el = min(nest.GetLeaves(l)[0])
 for i, stat in zip(conn, statuses):
     writer.writerow([int(i[0]-min_el), int(i[1]-min_el), stat['delay']])
 con_file.close()
-
+# 
 # sd = nest.Create('spike_detector')
 # nest.ConvergentConnect(nest.GetLeaves(l)[0], sd)
 # 
