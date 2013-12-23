@@ -59,14 +59,7 @@ int* num_spikes_syn_dev;
 
 int Ncon;
 
-int get_random(int max){
-
-	if (RAND_MAX == 32767){
-		return ((RAND_MAX + 1)*(long)rand() + rand()) % max;
-	} else {
-		return rand() % max;
-	}
-}
+int T_sim;
 
 void init_conns_from_file();
 
@@ -74,11 +67,14 @@ void init_neurs_from_file();
 
 void save2file();
 
-void swap_spikes();
+void swap_spikes(int);
 
-void copy2device();
+void init_poisson(int);
+
+void malloc_neur_memory();
 
 void malloc_conn_memory();
 
-void malloc_neur_memory();
+void copy2device();
+
 
