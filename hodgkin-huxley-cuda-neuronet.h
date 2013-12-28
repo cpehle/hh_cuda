@@ -76,5 +76,3 @@ void malloc_neur_memory();
 void malloc_conn_memory();
 
 void copy2device();
-
-
