@@ -7,13 +7,13 @@
 #include <limits.h>
 #include "hodgkin-huxley-cuda-neuronet.h"
 
-float h = 0.01f;
-float SimulationTime = 2000000.0f; // in ms
+float h = 0.05f;
+float SimulationTime = 10000.0f; // in ms
 
-int T_sim_particular = 10000; // in time frames
+int T_sim_particular = 100000; // in time frames
 // T_sim_particular must be less than RAND_MAX which in Win32 is 32767, in gcc much greater
 
-int time_part_syn = 150;
+int time_part_syn = 100;
 // maximum part of simulating time for which is allocated memory
 // time_part_syn <= T[ms]/h[ms]
 // so the maximum number of spikes per neuron which can be processed is
@@ -26,8 +26,8 @@ int time_part_psn = 40;
 // so the maximum number of poisson spikes which can be processed is
 // T_sim_particular/time_part_psn
 
-int Nneur = 4000;
-int NumBundle = 40;
+int Nneur = 2;
+int NumBundle = 1;
 
 using namespace std;
 
@@ -42,11 +42,12 @@ __constant__ float E_L   = -54.4f;
 __constant__ float V_peak = 18.0f;
 
 //connection parameters
-float w_n = 1.3f;
+float w_n = 0.0f;
+float I_e = 5.27f;
 float w_p = 2.0f;
 float w_p_start = 1.95f;
 float w_p_stop = 2.5f;
-float rate = 181.0f;
+float rate = 10.0f;
 float tau_psc = 0.2f;
 float exp_psc = expf(-h/tau_psc);
 float *exp_w_p;
@@ -61,7 +62,7 @@ __device__ float hh_n_ch(float V, float n_ch, float h){
 	if (temp != 0.0f){
 		return (.01f*(1.0f - n_ch)*(V + 55.0f)/temp - 0.125*n_ch*expf(-(V + 65.0f)/80.0f))*h;
 	} else {
-		printf("Деление на ноль, n! \n");
+//		printf("Деление на ноль, n! \n");
 		return (.01f*(1.0f - n_ch)- 0.125*n_ch*expf(-(V + 65.0f)/80.0f))*h;
 	}
 }
@@ -71,7 +72,7 @@ __device__ float hh_m_ch(float V, float m_ch, float h){
 	if (temp != 0.0f){
 		return (0.1f*(1.0f - m_ch)*(V + 40.0f)/temp - 4.0f*m_ch*expf(-(V + 65.0f)/18.0f))*h;
 	} else {
-		printf("Деление на ноль, m! \n");
+//		printf("Деление на ноль, m! \n");
 		return (0.1f*(1.0f - m_ch) - 4.0f*m_ch*expf(-(V + 65.0f)/18.0f))*h;
 	}
 }
@@ -107,71 +108,71 @@ __global__ void integrate_neurons(
 		int Nneur, int t, float h){
 		int n = blockIdx.x*blockDim.x + threadIdx.x;
 		if (n < Nneur){
-		I_psn[n]  = (y_psn[n]*h + I_psn[n])*exp_psc;
-		y_psn[n] *= exp_psc;
-		// if where is poisson impulse on neuron
-		if (psn_time[Nneur*num_psn[n] + n] == t){
-			y_psn[n] += exp_w_p[n];
-			num_psn[n]++;
-		}
-		I_syn[n] += I_psn[n];
+			I_psn[n]  = (y_psn[n]*h + I_psn[n])*exp_psc;
+			y_psn[n] *= exp_psc;
+			// if where is poisson impulse on neuron
+			if (psn_time[Nneur*num_psn[n] + n] == t){
+				y_psn[n] += exp_w_p[n];
+				num_psn[n]++;
+			}
+			I_syn[n] += I_psn[n];
 
-		float V_mem, n_channel, m_channel, h_channel;
-		float v1, v2, v3, v4;
-		float n1, n2, n3, n4;
-		float m1, m2, m3, m4;
-		float h1, h2, h3, h4;
-		V_mem = V_m[n];
-		n_channel = n_ch[n];
-		m_channel = m_ch[n];
-		h_channel = h_ch[n];
-		v1 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], I_syn_last[n], I_e[n], h);
-		n1 = hh_n_ch(V_m[n], n_ch[n], h);
-		m1 = hh_m_ch(V_m[n], m_ch[n], h);
-		h1 = hh_h_ch(V_m[n], h_ch[n], h);
-		V_m[n] = V_mem + v1/2.0f;
-		n_ch[n] = n_channel + n1/2.0f;
-		m_ch[n] = m_channel + m1/2.0f;
-		h_ch[n] = h_channel + h1/2.0f;
+			float V_mem, n_channel, m_channel, h_channel;
+			float v1, v2, v3, v4;
+			float n1, n2, n3, n4;
+			float m1, m2, m3, m4;
+			float h1, h2, h3, h4;
+			V_mem = V_m[n];
+			n_channel = n_ch[n];
+			m_channel = m_ch[n];
+			h_channel = h_ch[n];
+			v1 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], I_syn_last[n], I_e[n], h);
+			n1 = hh_n_ch(V_m[n], n_ch[n], h);
+			m1 = hh_m_ch(V_m[n], m_ch[n], h);
+			h1 = hh_h_ch(V_m[n], h_ch[n], h);
+			V_m[n] = V_mem + v1/2.0f;
+			n_ch[n] = n_channel + n1/2.0f;
+			m_ch[n] = m_channel + m1/2.0f;
+			h_ch[n] = h_channel + h1/2.0f;
 
-		v2 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], (I_syn[n] + I_syn_last[n])/2.0f, I_e[n], h);
-		n2 = hh_n_ch(V_m[n], n_ch[n], h);
-		m2 = hh_m_ch(V_m[n], m_ch[n], h);
-		h2 = hh_h_ch(V_m[n], h_ch[n], h);
-		V_m[n] = V_mem + v2/2.0f;
-		n_ch[n] = n_channel + n2/2.0f;
-		m_ch[n] = m_channel + m2/2.0f;
-		h_ch[n] = h_channel + h2/2.0f;
+			v2 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], (I_syn[n] + I_syn_last[n])/2.0f, I_e[n], h);
+			n2 = hh_n_ch(V_m[n], n_ch[n], h);
+			m2 = hh_m_ch(V_m[n], m_ch[n], h);
+			h2 = hh_h_ch(V_m[n], h_ch[n], h);
+			V_m[n] = V_mem + v2/2.0f;
+			n_ch[n] = n_channel + n2/2.0f;
+			m_ch[n] = m_channel + m2/2.0f;
+			h_ch[n] = h_channel + h2/2.0f;
 
-		v3 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], (I_syn[n] + I_syn_last[n])/2.0f, I_e[n], h);
-		n3 = hh_n_ch(V_m[n], n_ch[n], h);
-		m3 = hh_m_ch(V_m[n], m_ch[n], h);
-		h3 = hh_h_ch(V_m[n], h_ch[n], h);
-		V_m[n] = V_mem + v3;
-		n_ch[n] = n_channel + n3;
-		m_ch[n] = m_channel + m3;
-		h_ch[n] = h_channel + h3;
+			v3 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], (I_syn[n] + I_syn_last[n])/2.0f, I_e[n], h);
+			n3 = hh_n_ch(V_m[n], n_ch[n], h);
+			m3 = hh_m_ch(V_m[n], m_ch[n], h);
+			h3 = hh_h_ch(V_m[n], h_ch[n], h);
+			V_m[n] = V_mem + v3;
+			n_ch[n] = n_channel + n3;
+			m_ch[n] = m_channel + m3;
+			h_ch[n] = h_channel + h3;
 
-		v4 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], I_syn[n], I_e[n], h);
-		n4 = hh_n_ch(V_m[n], n_ch[n], h);
-		m4 = hh_m_ch(V_m[n], m_ch[n], h);
-		h4 = hh_h_ch(V_m[n], h_ch[n], h);
-		V_m[n] = V_mem + (v1 + 2.0f*v2 + 2.0f*v3 + v4)/6.0f;
-		n_ch[n] = n_channel + (n1 + 2.0f*n2 + 2.0f*n3 + n4)/6.0f;
-		m_ch[n] = m_channel + (m1 + 2.0f*m2 + 2.0f*m3 + m4)/6.0f;
-		h_ch[n] = h_channel + (h1 + 2.0f*h2 + 2.0f*h3 + h4)/6.0f;
+			v4 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], I_syn[n], I_e[n], h);
+			n4 = hh_n_ch(V_m[n], n_ch[n], h);
+			m4 = hh_m_ch(V_m[n], m_ch[n], h);
+			h4 = hh_h_ch(V_m[n], h_ch[n], h);
+			V_m[n] = V_mem + (v1 + 2.0f*v2 + 2.0f*v3 + v4)/6.0f;
+			n_ch[n] = n_channel + (n1 + 2.0f*n2 + 2.0f*n3 + n4)/6.0f;
+			m_ch[n] = m_channel + (m1 + 2.0f*m2 + 2.0f*m3 + m4)/6.0f;
+			h_ch[n] = h_channel + (h1 + 2.0f*h2 + 2.0f*h3 + h4)/6.0f;
 
-		// checking if there's spike on neuron
-		if (V_m[n] > V_peak && V_mem > V_m[n] && V_m_last[n] <= V_mem){
-			spike_time[Nneur*num_spike_neur[n] + n] = t;
-			num_spike_neur[n]++;
-		}
-		V_m_last[n] = V_mem;
-		I_syn_last[n] = I_syn[n];
-		I_syn[n] = 0.0f;
-//		if (n == 68){
-//			printf("%i; %g; %g; %g; %g; %g; %g; %g; %g; \n", t, V_m[n], V_m[27], n_ch[n], m_ch[n], h_ch[n], I_psn[n], y_psn[n], I_syn_last[n]);
-//		}
+			// checking if there's spike on neuron
+			if (V_m[n] > V_peak && V_mem > V_m[n] && V_m_last[n] <= V_mem){
+				spike_time[Nneur*num_spike_neur[n] + n] = t;
+				num_spike_neur[n]++;
+			}
+			V_m_last[n] = V_mem;
+			I_syn_last[n] = I_syn[n];
+			I_syn[n] = 0.0f;
+			if (n == 0){
+				printf("%g; %g; %g; %g; %g; %g; %g; %g; %g; \n", t*h, V_m[n], V_m[n + 1], n_ch[n], m_ch[n], h_ch[n], I_psn[n], y_psn[n], I_syn_last[n]);
+			}
 		}
 }
 
@@ -179,6 +180,7 @@ int main(){
 	T_sim = SimulationTime/h;
 	init_neurs_from_file();
 	init_conns_from_file();
+	init_poisson(1);
 	copy2device();
 	ofstream rastr_file, sp_times_file;
 	rastr_file.open("rastr.csv");
@@ -188,14 +190,14 @@ int main(){
 
 	clock_t start = clock();
 	for (int t = 0; t < T_sim; t++){
-		integrate_neurons<<<dim3(Nneur/500), dim3(500)>>>(V_ms_dev, V_ms_last_dev, n_chs_dev, m_chs_dev, h_chs_dev, spike_times_dev, num_spikes_neur_dev,
+		integrate_neurons<<<dim3(Nneur/1 + 1), dim3(32)>>>(V_ms_dev, V_ms_last_dev, n_chs_dev, m_chs_dev, h_chs_dev, spike_times_dev, num_spikes_neur_dev,
 				I_es_dev, y_psns_dev, I_psns_dev, psn_times_dev, num_psns_dev, I_syns_dev, I_syns_last_dev, exp_w_p_dev, exp_psc, Nneur, t, h);
 		cudaDeviceSynchronize();
-		integrate_synapses<<<dim3(Ncon/256 + 1), dim3(256)>>>(ys_dev, I_pscs_dev, I_syns_dev, weights_dev, delays_dev, pre_conns_dev, post_conns_dev,
+		integrate_synapses<<<dim3(Ncon/1 + 1), dim3(32)>>>(ys_dev, I_pscs_dev, I_syns_dev, weights_dev, delays_dev, pre_conns_dev, post_conns_dev,
 				spike_times_dev, num_spikes_syn_dev, num_spikes_neur_dev, t, h, exp_psc, Nneur, Ncon);
 		cudaDeviceSynchronize();
 		if ((t % T_sim_particular) == 0){
-			cout << t*h << endl;
+//			cout << t*h << endl;
 			cudaMemcpy(spike_times, spike_times_dev, Nneur*sizeof(int)*T_sim_particular/time_part_syn, cudaMemcpyDeviceToHost);
 			cudaMemcpy(num_spikes_neur, num_spikes_neur_dev, Nneur*sizeof(int), cudaMemcpyDeviceToHost);
 			cudaMemcpy(num_spikes_syn, num_spikes_syn_dev, Ncon*sizeof(int), cudaMemcpyDeviceToHost);
@@ -214,10 +216,10 @@ int main(){
 	cudaMemcpy(spike_times, spike_times_dev, Nneur*sizeof(int)*T_sim_particular/time_part_syn, cudaMemcpyDeviceToHost);
 	cudaMemcpy(num_spikes_neur, num_spikes_neur_dev, Nneur*sizeof(int), cudaMemcpyDeviceToHost);
 	float time = ((float)clock() - (float)start)*1000./CLOCKS_PER_SEC;
-	cout << "Elapsed time: " << time << endl;
+//	cout << "Elapsed time: " << time << endl;
 
 	save2file();
-	cout << "Finished!" << endl;
+//	cout << "Finished!" << endl;
 	return 0;
 }
 
@@ -229,7 +231,7 @@ void init_conns_from_file(){
 	con_file.open("nn_params.csv");
 	con_file >> Ncon_part;
 	Ncon = Ncon_part*NumBundle;
-	cout << "Number of connections: " << Ncon << endl;
+//	cout << "Number of connections: " << Ncon << endl;
 	malloc_conn_memory();
 	float delay;
 	int pre, post;
@@ -258,7 +260,7 @@ void init_neurs_from_file(){
 			n_chs[idx] = 0.574678f;
 			m_chs[idx] = 0.913177f;
 			h_chs[idx] = 0.223994f;
-			I_es[idx] = 5.27f;
+			I_es[idx] = I_e;
 			exp_w_p[idx] = (expf(1.0f)/tau_psc)*(w_p_start + (w_p_stop - w_p_start)*bund/NumBundle);
 		}
 	}
@@ -334,7 +336,8 @@ void init_poisson(int current_time){
 	int num_inpulses = rate*T_sim_particular*h/1000.0f;
 	for (int n = 0; n < Nneur; n++){
 		for (int i = 0; i < num_inpulses; i++){
-			poisson_impulse_times[rand() % T_sim_particular] = 1;
+			int impulse_time = rand() % T_sim_particular;
+			poisson_impulse_times[impulse_time] = 1;
 		}
 
 		int num = 0;

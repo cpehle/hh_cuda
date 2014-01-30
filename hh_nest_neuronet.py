@@ -12,7 +12,7 @@ import matplotlib.pylab as pl
 import csv
 
 
-Tsim = 2000.
+Tsim = 1000.
 h = 0.1
 
 N = 100
@@ -38,7 +38,7 @@ nest.SetStatus(p, params = {'rate': rate})
 nest.CopyModel('static_synapse', 'poisson_synapse', params = {'weight': w_p, 'delay': h})
 conn_dict = {'connection_type': 'divergent', 'mask': {'box':{'lower_left': [-1.5, -1.5, -1.5], 'upper_right': [1.5, 1.5, 1.5]}}, 'kernel': p_con, 'delays': {'linear': {'c': h, 'a': T}}, 'weights': w_n, 'allow_autapses': False}
 tp.ConnectLayers(l,l,conn_dict)
-# nest.DivergentConnect(p, nest.GetLeaves(l)[0], model = 'poisson_synapse')
+#nest.DivergentConnect(p, nest.GetLeaves(l)[0], model = 'poisson_synapse')
 
 con_file = open("nn_params.csv", 'w')
 writer = csv.writer(con_file, delimiter=' ')
@@ -49,31 +49,50 @@ min_el = min(nest.GetLeaves(l)[0])
 for i, stat in zip(conn, statuses):
     writer.writerow([int(i[0]-min_el), int(i[1]-min_el), stat['delay']])
 con_file.close()
-# 
-# sd = nest.Create('spike_detector')
-# nest.ConvergentConnect(nest.GetLeaves(l)[0], sd)
-# 
-# nest.Simulate(Tsim)
-# 
-# events = nest.GetStatus(sd)[0]["events"]
-# pl.plot(events['times'], events['senders']-min_el, '.')
-# pl.xlabel("Time, ms")
-# pl.ylabel("Neuron index")
-# pl.title("NEST")
-# 
-# f = open('rastr.csv')
-# rdr = csv.reader(f, delimiter=';')
-# 
-# times = []
-# neurons = []
-# for sp in rdr:
-#     times.append(sp[0])
-#     neurons.append(sp[1])
-# times = np.array(times, dtype='float')
-# neurons = np.array(neurons, dtype='int')
-# pl.figure()
-# pl.plot(times, neurons, '.')
-# pl.xlabel("Time, ms")
-# pl.ylabel("Neuron index")
-# pl.title("CUDA")
-# pl.show()
+
+sd = nest.Create('spike_detector')
+nest.ConvergentConnect(nest.GetLeaves(l)[0], sd)
+
+mm = nest.Create('multimeter', params={'record_from':['V_m', 'Inact_n', 
+                                     'Act_m', 'Act_h', 'I_ex'], 'interval': h})
+nest.Connect(mm, [nest.GetLeaves(l)[0][64]])
+
+nest.Simulate(Tsim)
+
+mm_events = nest.GetStatus(mm)[0]['events']
+times = mm_events['times']
+V_ms = mm_events['V_m']
+ns = mm_events['Inact_n']
+ms = mm_events['Act_m']
+hs = mm_events['Act_h']
+I_exs = mm_events['I_ex']
+
+res_file = open("oscill_cpu.csv", 'w')
+wrt = csv.writer(res_file, delimiter=';')
+for t, V_m, n, m, h, I_ex in zip(times, V_ms, ns, ms, hs, I_exs):
+    wrt.writerow([t, V_m, n, m, h, I_ex])
+res_file.close()
+
+events = nest.GetStatus(sd)[0]["events"]
+pl.figure()
+pl.plot(events['times'], events['senders']-min_el, '.')
+pl.xlabel("Time, ms")
+pl.ylabel("Neuron index")
+pl.title("NEST")
+
+f = open('rastr.csv')
+rdr = csv.reader(f, delimiter=';')
+times = []
+neurons = []
+for sp in rdr:
+    times.append(sp[0])
+    neurons.append(sp[1])
+
+times = np.array(times, dtype='float')
+neurons = np.array(neurons, dtype='int')
+pl.figure()
+pl.plot(times, neurons, '.')
+pl.xlabel("Time, ms")
+pl.ylabel("Neuron index")
+pl.title("CUDA")
+pl.show()

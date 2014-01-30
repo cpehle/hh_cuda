@@ -11,7 +11,7 @@ import time
 
 NumBundle = 40
 BundleSz = 100
-BinSize = 1000.
+BinSize = 100.
 # less whan Tsim*Nneur/T_period
 NumSpikes = 100000000
 
@@ -30,9 +30,11 @@ for line in f:
 f.close()
 times = times[:j]
 neurs = neurs[:j]
+plot(times, neurs, '.')
+figure()
 del idx, j, f, line, rstr
 
-arr = np.zeros((NumBundle, len(times)/15), dtype='float32')
+arr = np.zeros((NumBundle, len(times)), dtype='float32')
 num_spikes = np.zeros(NumBundle)
 for t, neur in zip(times, neurs):
     n_bund = int(neur/BundleSz)
@@ -46,4 +48,4 @@ for i, s_times in enumerate(arr):
 spikes = spikes.values()
 del arr, times, neurs, num_spikes, i, s_times, t, neur, n_bund
 
-hist(spikes[5], bins=Tmax/BinSize, range=(0., Tmax), histtype='step')
+hist(spikes[35], bins=Tmax/BinSize, range=(0., Tmax), histtype='step')
