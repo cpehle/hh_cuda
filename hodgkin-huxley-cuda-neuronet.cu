@@ -7,10 +7,10 @@
 #include <limits.h>
 #include "hodgkin-huxley-cuda-neuronet.h"
 
-#define BLOCK_SIZE 256
+#define BLOCK_SIZE 64
 
-float h = 0.025f;
-float SimulationTime = 2000000.0f; // in ms
+float h = 0.1f;
+float SimulationTime = 500000.0f; // in ms
 unsigned int seed = 0;
 
 int T_sim_particular = 10000; // in time frames
@@ -28,7 +28,7 @@ int NumBundle = 40;
 using namespace std;
 
 // neuron parameters
-__constant__ float Cm    = 1.0f ; //  pF
+__constant__ float Cm    = 1.0f ; //  inverse of membrane capacity, 1/pF
 __constant__ float g_Na  = 120.0f; // nS
 __constant__ float g_K   = 36.0f;
 __constant__ float g_L   = .3f;
@@ -38,15 +38,13 @@ __constant__ float E_L   = -54.4f;
 __constant__ float V_peak = 18.0f;
 
 //connection parameters
-float w_n = 1.3f;
 float I_e = 5.27f;
-float w_p_start = 1.94f;
+float w_p_start = 1.95f; // pA
 float w_p_stop = 2.4f;
+float w_n = 1.3f;
 float rate = 180.0f;
 float tau_psc = 0.2f;
 float exp_psc = expf(-h/tau_psc);
-float *exp_w_p;
-float *exp_w_p_dev;
 
 __device__ float get_random(unsigned int *seed){
 	// return random number homogeneously distributed in interval [0:1]
@@ -59,31 +57,32 @@ __device__ float get_random(unsigned int *seed){
 }
 
 __device__ float hh_Vm(float V, float n_ch, float m_ch, float h_ch, float I_syn, float I_e, float h){
-	return (I_e - g_K*(V - E_K)*n_ch*n_ch*n_ch*n_ch - g_Na*(V - E_Na)*m_ch*m_ch*m_ch*h_ch - g_L*(V - E_L) + I_syn)*h/Cm;
+	return (I_e - g_K*(V - E_K)*n_ch*n_ch*n_ch*n_ch - g_Na*(V - E_Na)*m_ch*m_ch*m_ch*h_ch - g_L*(V - E_L) + I_syn)*h*Cm;
 }
 
 __device__ float hh_n_ch(float V, float n_ch, float h){
-	float temp = (1.0f - expf(-(V + 55.0f)/10.0f));
+	float temp = 1.0f - expf(-(V + 55.0f)*0.1f);
 	if (temp != 0.0f){
-		return (.01f*(1.0f - n_ch)*(V + 55.0f)/temp - 0.125*n_ch*expf(-(V + 65.0f)/80.0f))*h;
+		return (.01f*(1.0f - n_ch)*(V + 55.0f)/temp - 0.125*n_ch*expf(-(V + 65.0f)*0.0125f))*h;
 	} else {
 //		printf("Деление на ноль, n! \n");
-		return (.01f*(1.0f - n_ch)- 0.125*n_ch*expf(-(V + 65.0f)/80.0f))*h;
+//      For understanding why what, calculate the limit for v/(1 - exp(v/10)) then v tend to 0
+		return (0.1f*(1.0f - n_ch)- 0.125*n_ch*expf(-(V + 65.0f)*0.0125f))*h;
 	}
 }
 
 __device__ float hh_m_ch(float V, float m_ch, float h){
-	float temp = (1.0f - expf(-(V + 40.0f)/10.0f));
+	float temp = 1.0f - expf(-(V + 40.0f)*0.1f);
 	if (temp != 0.0f){
-		return (0.1f*(1.0f - m_ch)*(V + 40.0f)/temp - 4.0f*m_ch*expf(-(V + 65.0f)/18.0f))*h;
+		return (0.1f*(1.0f - m_ch)*(V + 40.0f)/temp - 4.0f*m_ch*expf(-(V + 65.0f)*0.055555556f))*h;
 	} else {
 //		printf("Деление на ноль, m! \n");
-		return (0.1f*(1.0f - m_ch) - 4.0f*m_ch*expf(-(V + 65.0f)/18.0f))*h;
+		return ((1.0f - m_ch) - 4.0f*m_ch*expf(-(V + 65.0f)*0.055555556f))*h;
 	}
 }
 
 __device__ float hh_h_ch(float V, float h_ch, float h){
-	return (.07f*(1.0f - h_ch)*expf(-(V + 65.0f)/20.0f) - h_ch/(1.0f + expf(-(V + 35.0f)/10.0f)))*h;
+	return (.07f*(1.0f - h_ch)*expf(-(V + 65.0f)*0.05f) - h_ch/(1.0f + expf(-(V + 35.0f)*0.1f)))*h;
 }
 
 __global__ void init_poisson(int* psn_time, unsigned int *psn_seed, unsigned int seed, float rate, float h, int Nneur){
@@ -196,11 +195,9 @@ int main(){
 	init_neurs_from_file();
 	init_conns_from_file();
 	copy2device();
-	ofstream rastr_file, sp_times_file;
+	ofstream rastr_file;
 	rastr_file.open("rastr.csv");
 	rastr_file.close();
-//	sp_times_file.open("sp_times.txt");
-//	sp_times_file.close();
 
 	init_poisson<<<dim3(Nneur/BLOCK_SIZE + 1), dim3(BLOCK_SIZE)>>>(psn_times_dev, psn_seeds_dev, seed, rate, h, Nneur);
 	clock_t start = clock();
@@ -216,7 +213,7 @@ int main(){
 			cudaMemcpy(spike_times, spike_times_dev, Nneur*sizeof(int)*T_sim_particular/time_part_syn, cudaMemcpyDeviceToHost);
 			cudaMemcpy(num_spikes_neur, num_spikes_neur_dev, Nneur*sizeof(int), cudaMemcpyDeviceToHost);
 			cudaMemcpy(num_spikes_syn, num_spikes_syn_dev, Ncon*sizeof(int), cudaMemcpyDeviceToHost);
-			swap_spikes(t);
+			swap_spikes();
 			cudaMemcpy(spike_times_dev, spike_times, Nneur*sizeof(int)*T_sim_particular/time_part_syn, cudaMemcpyHostToDevice);
 			cudaMemcpy(num_spikes_neur_dev, num_spikes_neur, Nneur*sizeof(int), cudaMemcpyHostToDevice);
 			cudaMemcpy(num_spikes_syn_dev, num_spikes_syn, Ncon*sizeof(int), cudaMemcpyHostToDevice);
@@ -256,6 +253,7 @@ void init_conns_from_file(){
 			weights[idx] = (expf(1.0f)/tau_psc)*w_n;
 		}
 	}
+	con_file.close();
 }
 
 void init_neurs_from_file(){
@@ -287,9 +285,9 @@ void save2file(){
 	rastr_file.close();
 }
 
-void swap_spikes(int t){
+void swap_spikes(){
 	ofstream rastr_file;
-	rastr_file.open("rastr.csv", ios_base::app);
+	FILE *rastr_fl = fopen("rastr.csv", "a");
 
 	int* spike_times_temp = new int[Nneur*T_sim_particular/time_part_syn];
 	int* min_spike_nums_syn = new int[Nneur];
@@ -304,7 +302,7 @@ void swap_spikes(int t){
 
 	for (int n = 0; n < Nneur; n++){
 		for (int sp_n = 0; sp_n < min_spike_nums_syn[n]; sp_n++){
-			rastr_file << spike_times[Nneur*sp_n + n]*h << "; " << n << "; "<< endl;
+			fprintf(rastr_fl, "%.1f; %i; \n", (double)spike_times[Nneur*sp_n + n]*h, n);
 		}
 
 		for (int sp_n = min_spike_nums_syn[n]; sp_n < num_spikes_neur[n]; sp_n++){
@@ -312,7 +310,7 @@ void swap_spikes(int t){
 		}
 		num_spikes_neur[n] = num_spikes_neur[n] - min_spike_nums_syn[n];
 	}
-	rastr_file.close();
+	fclose(rastr_fl);
 
 	for (int s = 0; s < Ncon; s++){
 		num_spikes_syn[s] = num_spikes_syn[s] - min_spike_nums_syn[pre_conns[s]];

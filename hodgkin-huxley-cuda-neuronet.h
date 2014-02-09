@@ -20,6 +20,9 @@ float* I_es;
 float* I_psns;
 float* y_psns;
 
+float *exp_w_p;
+float *exp_w_p_dev;
+
 float* V_ms_dev;
 float* V_ms_last_dev;
 float* m_chs_dev;
@@ -66,9 +69,7 @@ void init_neurs_from_file();
 
 void save2file();
 
-void swap_spikes(int);
-
-void init_poisson(int);
+void swap_spikes();
 
 void malloc_neur_memory();
 
