@@ -3,14 +3,14 @@
 #include <fstream>
 #include <math.h>
 #include <cstdlib>
-#include <ctime>
+//#include <ctime>
 #include <limits.h>
 #include "hodgkin-huxley-cuda-neuronet.h"
 
 #define BLOCK_SIZE 64
 
-float h = 0.1f;
-float SimulationTime = 500000.0f; // in ms
+float h = 0.05f;
+float SimulationTime = 1000000.0f; // in ms
 unsigned int seed = 0;
 
 int T_sim_particular = 10000; // in time frames
@@ -22,13 +22,20 @@ int time_part_syn = 100;
 // so the maximum number of spikes per neuron which can be processed is
 // T_sim_particular/time_part_syn
 
-int Nneur = 4000;
-int NumBundle = 40;
+int time_part_psn = 40;
+// similarly to poisson spikes for each neuron
+// defined by poisson frequence
+// time_part_psn <= 1000/(h[ms]*max_rate[Hz])
+// so the maximum number of poisson spikes which can be processed is
+// T_sim_particular/time_part_psn
+
+int Nneur = 2000;
+int NumBundle = 20;
 
 using namespace std;
 
 // neuron parameters
-__constant__ float Cm    = 1.0f ; //  inverse of membrane capacity, 1/pF
+__constant__ float Cm    = 1.0f; //  inverse of membrane capacity, 1/pF
 __constant__ float g_Na  = 120.0f; // nS
 __constant__ float g_K   = 36.0f;
 __constant__ float g_L   = .3f;
@@ -39,12 +46,13 @@ __constant__ float V_peak = 18.0f;
 
 //connection parameters
 float I_e = 5.27f;
-float w_p_start = 1.95f; // pA
-float w_p_stop = 2.4f;
+float w_p_start = 1.96f; // pA
+float w_p_stop = 2.1f;
 float w_n = 1.3f;
-float rate = 180.0f;
+float rate = 178.3f;
 float tau_psc = 0.2f;
 float exp_psc = expf(-h/tau_psc);
+char f_name[] = "rastr.csv";
 
 __device__ float get_random(unsigned int *seed){
 	// return random number homogeneously distributed in interval [0:1]
@@ -117,7 +125,7 @@ __global__ void integrate_neurons(
 		int* spike_time, int* num_spike_neur,
 		float* I_e, float* y_psn, float* I_psn, int* psn_time, unsigned int* psn_seed,
 		float* I_syn, float* I_syn_last, float* exp_w_p, float exp_psc, float rate,
-		int Nneur, int t, float h){
+		int Nneur, int t, float h, int* ex_psn, int* num_imp){
 		int n = blockIdx.x*blockDim.x + threadIdx.x;
 		if (n < Nneur){
 			I_psn[n]  = (y_psn[n]*h + I_psn[n])*exp_psc;
@@ -125,11 +133,15 @@ __global__ void integrate_neurons(
 			// if where is poisson impulse on neuron
 			while (psn_time[n] == t){
 				y_psn[n] += exp_w_p[n];
-				psn_time[n] -= (1000.0f/(rate*h))*log(get_random(psn_seed + n));
-//				if (n == 0){
-//					printf("time: %i psn_time: %i \n", t, psn_time[n]);
-//				}
+				psn_time[n] -= (1000.0f/(rate*h))*logf(get_random(psn_seed + n));
 			}
+
+			// if poisson impulse times are reading from file
+//			while (ex_psn[Nneur*num_imp[n] + n] == t){
+//				y_psn[n] += exp_w_p[n];
+//				num_imp[n]++;
+//			}
+
 			I_syn[n] += I_psn[n];
 			float V_mem, n_channel, m_channel, h_channel;
 			float v1, v2, v3, v4;
@@ -185,7 +197,8 @@ __global__ void integrate_neurons(
 			I_syn_last[n] = I_syn[n];
 			I_syn[n] = 0.0f;
 //			if (n == 0){
-//				printf("%g; %g; %g; %g; %g; %g; %g; %g; %g; \n", t*h, V_m[n], V_m[n + 1], n_ch[n], m_ch[n], h_ch[n], I_psn[n], y_psn[n], I_syn_last[n]);
+//				printf("%.2f; %g; %g; %g; %g; %g; %g; %g; %g; %g\n",
+//						t*h, V_m[n], V_m[n+1], n_ch[n], m_ch[n], h_ch[n], I_psn[n], y_psn[n], I_syn_last[n], I_syn_last[n+1]);
 //			}
 		}
 }
@@ -194,22 +207,24 @@ int main(){
 	T_sim = SimulationTime/h;
 	init_neurs_from_file();
 	init_conns_from_file();
+//	init_poisson();
 	copy2device();
 	ofstream rastr_file;
-	rastr_file.open("rastr.csv");
+	rastr_file.open(f_name);
 	rastr_file.close();
 
 	init_poisson<<<dim3(Nneur/BLOCK_SIZE + 1), dim3(BLOCK_SIZE)>>>(psn_times_dev, psn_seeds_dev, seed, rate, h, Nneur);
 	clock_t start = clock();
-	for (int t = 0; t < T_sim; t++){
+	for (int t = 1; t < T_sim; t++){
 		integrate_neurons<<<dim3(Nneur/BLOCK_SIZE + 1), dim3(BLOCK_SIZE)>>>(V_ms_dev, V_ms_last_dev, n_chs_dev, m_chs_dev, h_chs_dev, spike_times_dev, num_spikes_neur_dev,
-				I_es_dev, y_psns_dev, I_psns_dev, psn_times_dev, psn_seeds_dev, I_syns_dev, I_syns_last_dev, exp_w_p_dev, exp_psc, rate, Nneur, t, h);
+				I_es_dev, y_psns_dev, I_psns_dev, psn_times_dev, psn_seeds_dev, I_syns_dev, I_syns_last_dev, exp_w_p_dev, exp_psc, rate, Nneur, t, h,
+				ex_psn_times_dev, num_psn_imp_dev);
 		cudaDeviceSynchronize();
 		integrate_synapses<<<dim3(Ncon/BLOCK_SIZE + 1), dim3(BLOCK_SIZE)>>>(ys_dev, I_pscs_dev, I_syns_dev, weights_dev, delays_dev, pre_conns_dev, post_conns_dev,
 				spike_times_dev, num_spikes_syn_dev, num_spikes_neur_dev, t, h, exp_psc, Nneur, Ncon);
 		cudaDeviceSynchronize();
 		if ((t % T_sim_particular) == 0){
-			cout << t*h << endl;
+			cerr << t*h << endl;
 			cudaMemcpy(spike_times, spike_times_dev, Nneur*sizeof(int)*T_sim_particular/time_part_syn, cudaMemcpyDeviceToHost);
 			cudaMemcpy(num_spikes_neur, num_spikes_neur_dev, Nneur*sizeof(int), cudaMemcpyDeviceToHost);
 			cudaMemcpy(num_spikes_syn, num_spikes_syn_dev, Ncon*sizeof(int), cudaMemcpyDeviceToHost);
@@ -223,10 +238,10 @@ int main(){
 	cudaMemcpy(spike_times, spike_times_dev, Nneur*sizeof(int)*T_sim_particular/time_part_syn, cudaMemcpyDeviceToHost);
 	cudaMemcpy(num_spikes_neur, num_spikes_neur_dev, Nneur*sizeof(int), cudaMemcpyDeviceToHost);
 	float time = ((float)clock() - (float)start)*1000./CLOCKS_PER_SEC;
-	cout << "Elapsed time: " << time << endl;
+	cerr << "Elapsed time: " << time << endl;
 
 	save2file();
-	cout << "Finished!" << endl;
+	cerr << "Finished!" << endl;
 	return 0;
 }
 
@@ -238,7 +253,7 @@ void init_conns_from_file(){
 	con_file.open("nn_params.csv");
 	con_file >> Ncon_part;
 	Ncon = Ncon_part*NumBundle;
-//	cout << "Number of connections: " << Ncon << endl;
+	cerr << "Number of connections: " << Ncon << endl;
 	malloc_conn_memory();
 	float delay;
 	int pre, post;
@@ -276,7 +291,7 @@ void init_neurs_from_file(){
 
 void save2file(){
 	ofstream rastr_file;
-	rastr_file.open("rastr.csv", ios_base::app);
+	rastr_file.open(f_name, ios_base::app);
 	for (int n = 0; n < Nneur; n++){
 		for (int sp_num = 0; sp_num < num_spikes_neur[n]; sp_num++){
 			rastr_file << spike_times[Nneur*sp_num + n]*h << "; " << n << "; "<< endl;
@@ -287,7 +302,7 @@ void save2file(){
 
 void swap_spikes(){
 	ofstream rastr_file;
-	FILE *rastr_fl = fopen("rastr.csv", "a");
+	FILE *rastr_fl = fopen(f_name, "a");
 
 	int* spike_times_temp = new int[Nneur*T_sim_particular/time_part_syn];
 	int* min_spike_nums_syn = new int[Nneur];
@@ -338,6 +353,8 @@ void malloc_neur_memory(){
 	// spike_times[Nneur*num + n] = t
 	spike_times = new int[Nneur*T_sim_particular/time_part_syn]();
 	num_spikes_neur = new int[Nneur]();
+
+//	ex_psn_times = new int[Nneur*T_sim/time_part_psn];
 }
 
 void malloc_conn_memory(){
@@ -374,6 +391,11 @@ void copy2device(){
 	cudaMalloc((void**) &spike_times_dev, n_isize*T_sim_particular/time_part_syn);
 	cudaMalloc((void**) &num_spikes_neur_dev, n_isize);
 
+//	cudaMalloc((void**) &ex_psn_times_dev, n_isize*T_sim/time_part_psn);
+	cudaMalloc((void**) &num_psn_imp_dev, n_isize);
+	cudaMemset(num_psn_imp_dev, 0, n_isize);
+
+
 	int s_fsize = Ncon*sizeof(float);
 	int s_isize = Ncon*sizeof(int);
 	cudaMalloc((void**) &ys_dev, s_fsize);
@@ -406,5 +428,24 @@ void copy2device(){
 	cudaMemcpy(post_conns_dev, post_conns, s_isize, cudaMemcpyHostToDevice);
 	cudaMemcpy(delays_dev, delays, s_isize, cudaMemcpyHostToDevice);
 	cudaMemcpy(num_spikes_syn_dev, num_spikes_syn, s_isize, cudaMemcpyHostToDevice);
+
+//	cudaMemcpy(ex_psn_times_dev, ex_psn_times, n_isize*T_sim/time_part_psn, cudaMemcpyHostToDevice);
 }
 
+void init_poisson(){
+	int numImp;
+	int *num = new int[Nneur]();
+	FILE *psnFile;
+	psnFile = fopen("poisson.csv", "r");
+	fscanf(psnFile, "%i", &numImp);
+	float inpTime;
+	int n;
+	for (int i = 0; i < numImp; i++){
+		fscanf(psnFile, "%f;%i\n", &inpTime, &n);
+		ex_psn_times[Nneur*num[n] + n] = inpTime/h;
+//		cout << "psn_time: " << poisson_times[Nneur*num[n] + n] << ": " << inpTime << endl;
+		num[n]++;
+	}
+	fclose(psnFile);
+	free(num);
+}
