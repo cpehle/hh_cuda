@@ -1,16 +1,16 @@
-#include <stdio.h>
+#include <cstdio>
 #include <iostream>
 #include <fstream>
-#include <math.h>
+#include <sstream>
+#include <cmath>
 #include <cstdlib>
-//#include <ctime>
-#include <limits.h>
+#include <climits>
 #include "hodgkin-huxley-cuda-neuronet.h"
 
 #define BLOCK_SIZE 64
 
 float h = 0.05f;
-float SimulationTime = 1000000.0f; // in ms
+float SimulationTime = 1000.0f; // in ms
 unsigned int seed = 0;
 
 int T_sim_particular = 10000; // in time frames
@@ -22,15 +22,9 @@ int time_part_syn = 100;
 // so the maximum number of spikes per neuron which can be processed is
 // T_sim_particular/time_part_syn
 
-int time_part_psn = 40;
-// similarly to poisson spikes for each neuron
-// defined by poisson frequence
-// time_part_psn <= 1000/(h[ms]*max_rate[Hz])
-// so the maximum number of poisson spikes which can be processed is
-// T_sim_particular/time_part_psn
-
 int Nneur = 2000;
 int NumBundle = 20;
+int BundleSize = Nneur/NumBundle;
 
 using namespace std;
 
@@ -47,12 +41,12 @@ __constant__ float V_peak = 18.0f;
 //connection parameters
 float I_e = 5.27f;
 float w_p_start = 1.96f; // pA
-float w_p_stop = 2.1f;
+float w_p_stop = 2.04f;
 float w_n = 1.3f;
 float rate = 178.3f;
 float tau_psc = 0.2f;
 float exp_psc = expf(-h/tau_psc);
-char f_name[] = "rastr.csv";
+char f_name[] = "results3/rastr";
 
 __device__ float get_random(unsigned int *seed){
 	// return random number homogeneously distributed in interval [0:1]
@@ -93,12 +87,13 @@ __device__ float hh_h_ch(float V, float h_ch, float h){
 	return (.07f*(1.0f - h_ch)*expf(-(V + 65.0f)*0.05f) - h_ch/(1.0f + expf(-(V + 35.0f)*0.1f)))*h;
 }
 
-__global__ void init_poisson(int* psn_time, unsigned int *psn_seed, unsigned int seed, float rate, float h, int Nneur){
+__global__ void init_poisson(int* psn_time, unsigned int *psn_seed, unsigned int seed, float rate, float h, int Nneur, int BundleSize){
 	int n = blockIdx.x*blockDim.x + threadIdx.x;
+	int neur = n % BundleSize;
 	if (n < Nneur){
-		psn_seed[n] = seed + 100000*(n + 1);
+
+		psn_seed[n] = seed + 100000*(neur + 1);
 		psn_time[n] = -(1000.0f/(h*rate))*logf(get_random(psn_seed + n));
-//		printf("time: %i psn_time: %i \n", n, psn_time[n]);
 	}
 }
 __global__ void integrate_synapses(float* y, float* I_psc, float* I_syn, float* weight, int* delay, int* pre_conn, int* post_conn,
@@ -125,24 +120,20 @@ __global__ void integrate_neurons(
 		int* spike_time, int* num_spike_neur,
 		float* I_e, float* y_psn, float* I_psn, int* psn_time, unsigned int* psn_seed,
 		float* I_syn, float* I_syn_last, float* exp_w_p, float exp_psc, float rate,
-		int Nneur, int t, float h, int* ex_psn, int* num_imp){
+		int Nneur, int t, float h){
 		int n = blockIdx.x*blockDim.x + threadIdx.x;
 		if (n < Nneur){
 			I_psn[n]  = (y_psn[n]*h + I_psn[n])*exp_psc;
 			y_psn[n] *= exp_psc;
+
 			// if where is poisson impulse on neuron
 			while (psn_time[n] == t){
 				y_psn[n] += exp_w_p[n];
 				psn_time[n] -= (1000.0f/(rate*h))*logf(get_random(psn_seed + n));
 			}
 
-			// if poisson impulse times are reading from file
-//			while (ex_psn[Nneur*num_imp[n] + n] == t){
-//				y_psn[n] += exp_w_p[n];
-//				num_imp[n]++;
-//			}
-
 			I_syn[n] += I_psn[n];
+
 			float V_mem, n_channel, m_channel, h_channel;
 			float v1, v2, v3, v4;
 			float n1, n2, n3, n4;
@@ -207,20 +198,16 @@ int main(){
 	T_sim = SimulationTime/h;
 	init_neurs_from_file();
 	init_conns_from_file();
-//	init_poisson();
 	copy2device();
-	ofstream rastr_file;
-	rastr_file.open(f_name);
-	rastr_file.close();
+	clear_files();
 
-	init_poisson<<<dim3(Nneur/BLOCK_SIZE + 1), dim3(BLOCK_SIZE)>>>(psn_times_dev, psn_seeds_dev, seed, rate, h, Nneur);
+	init_poisson<<<dim3(Nneur/BLOCK_SIZE + 1), dim3(BLOCK_SIZE)>>>(psn_times_dev, psn_seeds_dev, seed, rate, h, Nneur, BundleSize);
 	clock_t start = clock();
 	for (int t = 1; t < T_sim; t++){
 		integrate_neurons<<<dim3(Nneur/BLOCK_SIZE + 1), dim3(BLOCK_SIZE)>>>(V_ms_dev, V_ms_last_dev, n_chs_dev, m_chs_dev, h_chs_dev, spike_times_dev, num_spikes_neur_dev,
-				I_es_dev, y_psns_dev, I_psns_dev, psn_times_dev, psn_seeds_dev, I_syns_dev, I_syns_last_dev, exp_w_p_dev, exp_psc, rate, Nneur, t, h,
-				ex_psn_times_dev, num_psn_imp_dev);
+				I_es_dev, y_psns_dev, I_psns_dev, psn_times_dev, psn_seeds_dev, I_syns_dev, I_syns_last_dev, exp_w_p_dev, exp_psc, rate, Nneur, t, h);
 		cudaDeviceSynchronize();
-		integrate_synapses<<<dim3(Ncon/BLOCK_SIZE + 1), dim3(BLOCK_SIZE)>>>(ys_dev, I_pscs_dev, I_syns_dev, weights_dev, delays_dev, pre_conns_dev, post_conns_dev,
+		integrate_synapses<<<dim3(Ncon/BLOCK_SIZE + 1), dim3(BLOCK_SIZE)>>>(ys_dev, I_syn_partial_dev, I_syns_dev, weights_dev, delays_dev, pre_conns_dev, post_conns_dev,
 				spike_times_dev, num_spikes_syn_dev, num_spikes_neur_dev, t, h, exp_psc, Nneur, Ncon);
 		cudaDeviceSynchronize();
 		if ((t % T_sim_particular) == 0){
@@ -272,12 +259,11 @@ void init_conns_from_file(){
 }
 
 void init_neurs_from_file(){
-	int Nneur_part = Nneur/NumBundle;
 	srand(0);
 	malloc_neur_memory();
 	for (int bund = 0; bund < NumBundle; bund++){
-		for (int n = 0; n < Nneur_part; n++){
-			int idx = Nneur_part*bund + n;
+		for (int n = 0; n < BundleSize; n++){
+			int idx = BundleSize*bund + n;
 			V_ms[idx] = 32.9066f;
 			V_ms_last[idx] = 32.9065f;
 			n_chs[idx] = 0.574678f;
@@ -290,19 +276,34 @@ void init_neurs_from_file(){
 }
 
 void save2file(){
-	ofstream rastr_file;
-	rastr_file.open(f_name, ios_base::app);
+	FILE** files = new FILE*[NumBundle];
+	stringstream s;
+	char* name = new char[500];
+	for (int i = 0; i < NumBundle; i++){
+		s << f_name << "_w_p_" << w_p_start + (w_p_stop - w_p_start)*i/NumBundle << endl;
+		s >> name;
+		files[i] = fopen(name, "a");
+	}
+	int idx, neur;
 	for (int n = 0; n < Nneur; n++){
-		for (int sp_num = 0; sp_num < num_spikes_neur[n]; sp_num++){
-			rastr_file << spike_times[Nneur*sp_num + n]*h << "; " << n << "; "<< endl;
+		idx = n/BundleSize;
+		neur = n - BundleSize*idx;
+		for (int sp_n = 0; sp_n < num_spikes_neur[n]; sp_n++){
+			fprintf(files[idx], "%.1f; %i; \n", spike_times[Nneur*sp_n + neur]*h, neur);
 		}
 	}
-	rastr_file.close();
+
 }
 
 void swap_spikes(){
-	ofstream rastr_file;
-	FILE *rastr_fl = fopen(f_name, "a");
+	FILE** files = new FILE*[NumBundle];
+	stringstream s;
+	char* name = new char[500];
+	for (int i = 0; i < NumBundle; i++){
+		s << f_name << "_w_p_" << w_p_start + (w_p_stop - w_p_start)*i/NumBundle << endl;
+		s >> name;
+		files[i] = fopen(name, "a");
+	}
 
 	int* spike_times_temp = new int[Nneur*T_sim_particular/time_part_syn];
 	int* min_spike_nums_syn = new int[Nneur];
@@ -314,10 +315,12 @@ void swap_spikes(){
 			min_spike_nums_syn[pre_conns[s]] = num_spikes_syn[s];
 		}
 	}
-
+	int idx, neur;
 	for (int n = 0; n < Nneur; n++){
+		idx = n/BundleSize;
+		neur = n - BundleSize*idx;
 		for (int sp_n = 0; sp_n < min_spike_nums_syn[n]; sp_n++){
-			fprintf(rastr_fl, "%.1f; %i; \n", (double)spike_times[Nneur*sp_n + n]*h, n);
+			fprintf(files[idx], "%.1f; %i; \n", spike_times[Nneur*sp_n + neur]*h, neur);
 		}
 
 		for (int sp_n = min_spike_nums_syn[n]; sp_n < num_spikes_neur[n]; sp_n++){
@@ -325,7 +328,10 @@ void swap_spikes(){
 		}
 		num_spikes_neur[n] = num_spikes_neur[n] - min_spike_nums_syn[n];
 	}
-	fclose(rastr_fl);
+
+	for (int i = 0; i < NumBundle; i++){
+		fclose(files[i]);
+	}
 
 	for (int s = 0; s < Ncon; s++){
 		num_spikes_syn[s] = num_spikes_syn[s] - min_spike_nums_syn[pre_conns[s]];
@@ -353,20 +359,18 @@ void malloc_neur_memory(){
 	// spike_times[Nneur*num + n] = t
 	spike_times = new int[Nneur*T_sim_particular/time_part_syn]();
 	num_spikes_neur = new int[Nneur]();
-
-//	ex_psn_times = new int[Nneur*T_sim/time_part_psn];
 }
 
 void malloc_conn_memory(){
 	ys = new float[Ncon];
-	I_pscs = new float[Ncon];
+	I_syn_partial = new float[Ncon];
 	weights = new float[Ncon];
 	pre_conns = new int[Ncon];
 	post_conns = new int[Ncon];
 	delays = new int[Ncon];
 	num_spikes_syn = new int[Ncon];
 	memset(ys, 0, Ncon*sizeof(int));
-	memset(I_pscs, 0, Ncon*sizeof(int));
+	memset(I_syn_partial, 0, Ncon*sizeof(int));
 	memset(num_spikes_syn, 0, Ncon*sizeof(int));
 }
 
@@ -391,15 +395,10 @@ void copy2device(){
 	cudaMalloc((void**) &spike_times_dev, n_isize*T_sim_particular/time_part_syn);
 	cudaMalloc((void**) &num_spikes_neur_dev, n_isize);
 
-//	cudaMalloc((void**) &ex_psn_times_dev, n_isize*T_sim/time_part_psn);
-	cudaMalloc((void**) &num_psn_imp_dev, n_isize);
-	cudaMemset(num_psn_imp_dev, 0, n_isize);
-
-
 	int s_fsize = Ncon*sizeof(float);
 	int s_isize = Ncon*sizeof(int);
 	cudaMalloc((void**) &ys_dev, s_fsize);
-	cudaMalloc((void**) &I_pscs_dev, s_fsize);
+	cudaMalloc((void**) &I_syn_partial_dev, s_fsize);
 	cudaMalloc((void**) &weights_dev, s_fsize);
 	cudaMalloc((void**) &pre_conns_dev, s_isize);
 	cudaMalloc((void**) &post_conns_dev, s_isize);
@@ -422,30 +421,22 @@ void copy2device(){
 	cudaMemcpy(num_spikes_neur_dev, num_spikes_neur, n_isize, cudaMemcpyHostToDevice);
 
 	cudaMemcpy(ys_dev, ys, s_fsize, cudaMemcpyHostToDevice);
-	cudaMemcpy(I_pscs_dev, I_pscs, s_fsize, cudaMemcpyHostToDevice);
+	cudaMemcpy(I_syn_partial_dev, I_syn_partial, s_fsize, cudaMemcpyHostToDevice);
 	cudaMemcpy(weights_dev, weights, s_fsize, cudaMemcpyHostToDevice);
 	cudaMemcpy(pre_conns_dev, pre_conns, s_isize, cudaMemcpyHostToDevice);
 	cudaMemcpy(post_conns_dev, post_conns, s_isize, cudaMemcpyHostToDevice);
 	cudaMemcpy(delays_dev, delays, s_isize, cudaMemcpyHostToDevice);
 	cudaMemcpy(num_spikes_syn_dev, num_spikes_syn, s_isize, cudaMemcpyHostToDevice);
-
-//	cudaMemcpy(ex_psn_times_dev, ex_psn_times, n_isize*T_sim/time_part_psn, cudaMemcpyHostToDevice);
 }
 
-void init_poisson(){
-	int numImp;
-	int *num = new int[Nneur]();
-	FILE *psnFile;
-	psnFile = fopen("poisson.csv", "r");
-	fscanf(psnFile, "%i", &numImp);
-	float inpTime;
-	int n;
-	for (int i = 0; i < numImp; i++){
-		fscanf(psnFile, "%f;%i\n", &inpTime, &n);
-		ex_psn_times[Nneur*num[n] + n] = inpTime/h;
-//		cout << "psn_time: " << poisson_times[Nneur*num[n] + n] << ": " << inpTime << endl;
-		num[n]++;
+void clear_files(){
+	FILE** files = new FILE*[NumBundle];
+	stringstream s;
+	char* name = new char[500];
+	for (int i = 0; i < NumBundle; i++){
+		s << f_name << "_w_p_" << w_p_start + (w_p_stop - w_p_start)*i/NumBundle << endl;
+		s >> name;
+		files[i] = fopen(name, "w");
+		fclose(files[i]);
 	}
-	fclose(psnFile);
-	free(num);
 }
