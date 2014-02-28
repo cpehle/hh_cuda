@@ -10,8 +10,8 @@
 #define BLOCK_SIZE 64
 
 float h = 0.05f;
-float SimulationTime = 1000.0f; // in ms
-unsigned int seed = 0;
+float SimulationTime = 5000000.0f; // in ms
+unsigned int seed = 1;
 
 int T_sim_particular = 10000; // in time frames
 // T_sim_particular must be less than RAND_MAX which in Win32 is 32767, in gcc much greater
@@ -22,8 +22,8 @@ int time_part_syn = 100;
 // so the maximum number of spikes per neuron which can be processed is
 // T_sim_particular/time_part_syn
 
-int Nneur = 2000;
-int NumBundle = 20;
+int Nneur = 4000;
+int NumBundle = 40;
 int BundleSize = Nneur/NumBundle;
 
 using namespace std;
@@ -46,7 +46,7 @@ float w_n = 1.3f;
 float rate = 178.3f;
 float tau_psc = 0.2f;
 float exp_psc = expf(-h/tau_psc);
-char f_name[] = "results3/rastr";
+char f_name[] = "0/";
 
 __device__ float get_random(unsigned int *seed){
 	// return random number homogeneously distributed in interval [0:1]
@@ -194,7 +194,8 @@ __global__ void integrate_neurons(
 		}
 }
 
-int main(){
+int main(int argc, char* argv[]){
+	init_params(argc, argv);
 	T_sim = SimulationTime/h;
 	init_neurs_from_file();
 	init_conns_from_file();
@@ -225,7 +226,7 @@ int main(){
 	cudaMemcpy(spike_times, spike_times_dev, Nneur*sizeof(int)*T_sim_particular/time_part_syn, cudaMemcpyDeviceToHost);
 	cudaMemcpy(num_spikes_neur, num_spikes_neur_dev, Nneur*sizeof(int), cudaMemcpyDeviceToHost);
 	float time = ((float)clock() - (float)start)*1000./CLOCKS_PER_SEC;
-	cerr << "Elapsed time: " << time << endl;
+	cerr << "Elapsed time: " << time << " ms" << endl;
 
 	save2file();
 	cerr << "Finished!" << endl;
@@ -280,7 +281,7 @@ void save2file(){
 	stringstream s;
 	char* name = new char[500];
 	for (int i = 0; i < NumBundle; i++){
-		s << f_name << "_w_p_" << w_p_start + (w_p_stop - w_p_start)*i/NumBundle << endl;
+		s << f_name << "w_p_" << w_p_start + (w_p_stop - w_p_start)*i/NumBundle << endl;
 		s >> name;
 		files[i] = fopen(name, "a");
 	}
@@ -289,7 +290,7 @@ void save2file(){
 		idx = n/BundleSize;
 		neur = n - BundleSize*idx;
 		for (int sp_n = 0; sp_n < num_spikes_neur[n]; sp_n++){
-			fprintf(files[idx], "%.1f; %i; \n", spike_times[Nneur*sp_n + neur]*h, neur);
+			fprintf(files[idx], "%.1f; %i; \n", spike_times[Nneur*sp_n + n]*h, neur);
 		}
 	}
 
@@ -300,7 +301,7 @@ void swap_spikes(){
 	stringstream s;
 	char* name = new char[500];
 	for (int i = 0; i < NumBundle; i++){
-		s << f_name << "_w_p_" << w_p_start + (w_p_stop - w_p_start)*i/NumBundle << endl;
+		s << f_name << "w_p_" << w_p_start + (w_p_stop - w_p_start)*i/NumBundle << endl;
 		s >> name;
 		files[i] = fopen(name, "a");
 	}
@@ -320,7 +321,7 @@ void swap_spikes(){
 		idx = n/BundleSize;
 		neur = n - BundleSize*idx;
 		for (int sp_n = 0; sp_n < min_spike_nums_syn[n]; sp_n++){
-			fprintf(files[idx], "%.1f; %i; \n", spike_times[Nneur*sp_n + neur]*h, neur);
+			fprintf(files[idx], "%.1f; %i; \n", spike_times[Nneur*sp_n + n]*h, neur);
 		}
 
 		for (int sp_n = min_spike_nums_syn[n]; sp_n < num_spikes_neur[n]; sp_n++){
@@ -434,9 +435,23 @@ void clear_files(){
 	stringstream s;
 	char* name = new char[500];
 	for (int i = 0; i < NumBundle; i++){
-		s << f_name << "_w_p_" << w_p_start + (w_p_stop - w_p_start)*i/NumBundle << endl;
+		s << f_name << "w_p_" << w_p_start + (w_p_stop - w_p_start)*i/NumBundle << endl;
 		s >> name;
 		files[i] = fopen(name, "w");
 		fclose(files[i]);
+	}
+}
+
+void init_params(int argc, char* argv[]){
+	stringstream str;
+	for (int i = 1; i < argc; i++){
+		str << argv[i] << endl;
+		switch (i){
+			case 1: str >> SimulationTime; break;
+			case 2: str >> h; break;
+			case 3: str >> w_p_start; break;
+			case 4: str >> w_p_stop; break;
+			case 5: str >> f_name; break;
+		}
 	}
 }

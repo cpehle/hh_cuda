@@ -80,3 +80,5 @@ void copy2device();
 void init_poisson();
 
 void clear_files();
+
+void init_params(int, char*[]);
