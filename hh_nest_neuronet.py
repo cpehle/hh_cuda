@@ -10,7 +10,7 @@ import nest.topology as tp
 import numpy as np
 import matplotlib.pylab as pl
 import csv
-
+import time
 
 Tsim = 10000.
 h = 0.1
@@ -19,14 +19,14 @@ N = 100
 p_con = 0.1
 
 I = 5.27
-w_p = 1.95
+w_p = 2.038
 w_n = 1.3
 T = 20.3
-rate = 180. #Hz 
+rate = 178.3 #Hz 
 
 nest.ResetKernel()
 np.random.seed(seed=1)
-nest.SetKernelStatus({'resolution': h, 'local_num_threads': 1})
+nest.SetKernelStatus({'resolution': h, 'local_num_threads': 8})
 nest.SetDefaults('hh_psc_alpha', params={'E_L': -54.4, 'E_Na': 55., 'C_m': 1., 'g_K': 36., 'g_L': 0.3, 'g_Na': 120., 
                                          'Act_h': 0.223994, 'Act_m': 0.913177, 'Inact_n': 0.574676, 
                                          'I_e': I, 'V_m': 32.906693})
@@ -38,17 +38,17 @@ nest.SetStatus(p, params = {'rate': rate})
 nest.CopyModel('static_synapse', 'poisson_synapse', params = {'weight': w_p, 'delay': h})
 conn_dict = {'connection_type': 'divergent', 'mask': {'box':{'lower_left': [-1.5, -1.5, -1.5], 'upper_right': [1.5, 1.5, 1.5]}}, 'kernel': p_con, 'delays': {'linear': {'c': h, 'a': T}}, 'weights': w_n, 'allow_autapses': False}
 tp.ConnectLayers(l,l,conn_dict)
-#nest.DivergentConnect(p, nest.GetLeaves(l)[0], model = 'poisson_synapse')
+nest.DivergentConnect(p, nest.GetLeaves(l)[0], model = 'poisson_synapse')
 
-con_file = open("nn_params.csv", 'w')
-writer = csv.writer(con_file, delimiter=' ')
-conn = nest.GetConnections()
-con_file.write(str(len(conn))+"\n")
-statuses = nest.GetStatus(conn)
-min_el = min(nest.GetLeaves(l)[0])
-for i, stat in zip(conn, statuses):
-    writer.writerow([int(i[0]-min_el), int(i[1]-min_el), stat['delay']])
-con_file.close()
+#con_file = open("nn_params.csv", 'w')
+#writer = csv.writer(con_file, delimiter=' ')
+#conn = nest.GetConnections()
+#con_file.write(str(len(conn))+"\n")
+#statuses = nest.GetStatus(conn)
+#min_el = min(nest.GetLeaves(l)[0])
+#for i, stat in zip(conn, statuses):
+    #writer.writerow([int(i[0]-min_el), int(i[1]-min_el), stat['delay']])
+#con_file.close()
 
 sd = nest.Create('spike_detector')
 nest.ConvergentConnect(nest.GetLeaves(l)[0], sd)
@@ -56,8 +56,10 @@ nest.ConvergentConnect(nest.GetLeaves(l)[0], sd)
 #mm = nest.Create('multimeter', params={'record_from':['V_m', 'Inact_n', 
 #                                     'Act_m', 'Act_h', 'I_ex'], 'interval': h})
 #nest.Connect(mm, [nest.GetLeaves(l)[0][0]])
-#
+
+start = time.time()
 nest.Simulate(Tsim)
+print time.time() - start
 
 #mm_events = nest.GetStatus(mm)[0]['events']
 #times = mm_events['times']
@@ -73,12 +75,12 @@ nest.Simulate(Tsim)
 #    wrt.writerow([t, V_m, n, m, h, I_ex])
 #res_file.close()
 
-events = nest.GetStatus(sd, "events")[0]
-pl.figure()
-pl.plot(events['times'], events['senders']-min_el, '.')
-pl.xlabel("Time, ms")
-pl.ylabel("Neuron index")
-pl.title("NEST")
+#events = nest.GetStatus(sd, "events")[0]
+#pl.figure()
+#pl.plot(events['times'], events['senders'], '.')
+#pl.xlabel("Time, ms")
+#pl.ylabel("Neuron index")
+#pl.title("NEST")
 
 #f = open('rastr.csv')
 #rdr = csv.reader(f, delimiter=';')
