@@ -12,7 +12,7 @@
 
 float h = 0.025f;
 unsigned int seed = 1;
-float SimulationTime = 1000.0f; // in ms
+float SimulationTime = 200.0f; // in ms
 
 int T_sim_partial = 10000; // in time frames
 
@@ -23,8 +23,8 @@ int time_part_syn = 15.0f/h;
 // so the maximum number of spikes per neuron which can be processed is
 // T_sim_particular/time_part_syn
 
-int Nneur = 4000;
-int NumBundle = 40;
+int Nneur = 100;
+int NumBundle = 1;
 int BundleSize = Nneur/NumBundle;
 
 using namespace std;
@@ -39,7 +39,7 @@ __constant__ float E_Na  = 55.0f;
 __constant__ float E_L   = -54.4f;
 __constant__ float V_peak = 18.0f;
 
-//connection parameters
+// connection parameters
 float I_e = 5.27f;
 float w_p_start = 1.96f; // pA
 float w_p_stop = 2.04f;
@@ -92,41 +92,40 @@ __global__ void init_poisson(int* psn_time, unsigned int *psn_seed, unsigned int
 	int n = blockIdx.x*blockDim.x + threadIdx.x;
 	int neur = n % BundleSize;
 	if (n < Nneur){
-
 		psn_seed[n] = seed + 100000*(neur + 1);
 		psn_time[n] = -(1000.0f/(h*rate))*logf(get_random(psn_seed + n));
 	}
 }
 
-__global__ void integrate_synapses(float* y, float* I_psc, float* I_syn, float* weight, int* delay, int* pre_conn, int* post_conn,
-		int* spike_time, int* num_spike_syn, int* num_spike_neur, int t, float h, float exp_psc, int Nneur, int Ncon){
+__global__ void integrate_synapses(float* y, float* weight, int* delay, int* pre_conn, int* post_conn,
+		int* spike_time, int* num_spike_syn, int* num_spike_neur, int t, int Nneur, int Ncon){
 	int s = blockDim.x*blockIdx.x + threadIdx.x;
 	if (s < Ncon){
-		I_psc[s]  = (y[s]*h + I_psc[s])*exp_psc;
-		y[s] *= exp_psc;
-		int neur = pre_conn[s];
+		int pre_neur = pre_conn[s];
 		// if we processed less spikes than there is in presynaptic neuron
 		// we need to check are there new spikes at this moment of time
-		if (num_spike_syn[s] < num_spike_neur[neur]){
-			if (spike_time[Nneur*num_spike_syn[s] + neur] == t - delay[s]){
-				y[s] += weight[s];
+		if (num_spike_syn[s] < num_spike_neur[pre_neur]){
+			if (spike_time[Nneur*num_spike_syn[s] + pre_neur] == t - delay[s]){
+				y[post_conn[s]] += weight[s];
 				num_spike_syn[s]++;
 			}
 		}
-		atomicAdd(&I_syn[post_conn[s]], I_psc[s]);
 	}
 }
 
 __global__ void integrate_neurons(
 		float* V_m, float* V_m_last, float* n_ch, float* m_ch, float* h_ch,
 		int* spike_time, int* num_spike_neur,
-		float* I_e, float* y_psn, float* I_psn, int* psn_time, unsigned int* psn_seed,
-		float* I_syn, float* I_syn_last, float* exp_w_p, float exp_psc, float rate,
+		float* I_e, float* y, float* I_syn, float* y_psn, float* I_psn, int* psn_time, unsigned int* psn_seed,
+		float* I_syn_last, float* exp_w_p, float exp_psc, float rate,
 		int Nneur, int t, float h){
 		int n = blockIdx.x*blockDim.x + threadIdx.x;
 		if (n < Nneur){
 			I_psn[n]  = (y_psn[n]*h + I_psn[n])*exp_psc;
 			y_psn[n] *= exp_psc;
+
+			I_syn[n]  = (y[n]*h + I_syn[n])*exp_psc;
+			y[n] *= exp_psc;
 
 			// if where is poisson impulse on neuron
 			while (psn_time[n] == t){
@@ -134,7 +133,7 @@ __global__ void integrate_neurons(
 				psn_time[n] -= (1000.0f/(rate*h))*logf(get_random(psn_seed + n));
 			}
 
-			I_syn[n] += I_psn[n];
+			I_psn[n] = 0.0f;
 
 			float V_mem, n_channel, m_channel, h_channel;
 			float v1, v2, v3, v4;
@@ -154,7 +153,7 @@ __global__ void integrate_neurons(
 			m_ch[n] = m_channel + m1/2.0f;
 			h_ch[n] = h_channel + h1/2.0f;
 
-			v2 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], (I_syn[n] + I_syn_last[n])/2.0f, I_e[n], h);
+			v2 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], (I_syn[n] + I_psn[n] + I_syn_last[n])/2.0f, I_e[n], h);
 			n2 = hh_n_ch(V_m[n], n_ch[n], h);
 			m2 = hh_m_ch(V_m[n], m_ch[n], h);
 			h2 = hh_h_ch(V_m[n], h_ch[n], h);
@@ -163,7 +162,7 @@ __global__ void integrate_neurons(
 			m_ch[n] = m_channel + m2/2.0f;
 			h_ch[n] = h_channel + h2/2.0f;
 
-			v3 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], (I_syn[n] + I_syn_last[n])/2.0f, I_e[n], h);
+			v3 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], (I_syn[n] + I_psn[n] + I_syn_last[n])/2.0f, I_e[n], h);
 			n3 = hh_n_ch(V_m[n], n_ch[n], h);
 			m3 = hh_m_ch(V_m[n], m_ch[n], h);
 			h3 = hh_h_ch(V_m[n], h_ch[n], h);
@@ -172,7 +171,7 @@ __global__ void integrate_neurons(
 			m_ch[n] = m_channel + m3;
 			h_ch[n] = h_channel + h3;
 
-			v4 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], I_syn[n], I_e[n], h);
+			v4 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], I_syn[n] + I_psn[n], I_e[n], h);
 			n4 = hh_n_ch(V_m[n], n_ch[n], h);
 			m4 = hh_m_ch(V_m[n], m_ch[n], h);
 			h4 = hh_h_ch(V_m[n], h_ch[n], h);
@@ -187,11 +186,12 @@ __global__ void integrate_neurons(
 				num_spike_neur[n]++;
 			}
 			V_m_last[n] = V_mem;
-			I_syn_last[n] = I_syn[n];
-			I_syn[n] = 0.0f;
+			I_syn_last[n] = I_syn[n] + I_psn[n];
+
 //			if (n == 0){
-//				printf("%.2f; %g; %g; %g; %g; %g; %g; %g; %g; %g\n",
-//						t*h, V_m[n], V_m[n+1], n_ch[n], m_ch[n], h_ch[n], I_psn[n], y_psn[n], I_syn_last[n], I_syn_last[n+1]);
+//				printf("%.2f; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g\n",
+//						t*h, V_m[n], V_m[n+1], n_ch[n], m_ch[n], h_ch[n], I_psn[n], y_psn[n],
+//						I_syn[n], I_syn[n+1], I_syn[n+2], V_m[n+2]);
 //			}
 		}
 }
@@ -208,10 +208,10 @@ int main(int argc, char* argv[]){
 	clock_t start = clock();
 	for (int t = 1; t < T_sim; t++){
 		integrate_neurons<<<dim3(Nneur/NEUR_BLOCK_SIZE + 1), dim3(NEUR_BLOCK_SIZE)>>>(V_ms_dev, V_ms_last_dev, n_chs_dev, m_chs_dev, h_chs_dev, spike_times_dev, num_spikes_neur_dev,
-				I_es_dev, y_psns_dev, I_psns_dev, psn_times_dev, psn_seeds_dev, I_syns_dev, I_syns_last_dev, exp_w_p_dev, exp_psc, rate, Nneur, t, h);
+				I_es_dev, ys_dev, I_syns_dev, y_psns_dev, I_psns_dev, psn_times_dev, psn_seeds_dev, I_last_dev, exp_w_p_dev, exp_psc, rate, Nneur, t, h);
 		cudaDeviceSynchronize();
-		integrate_synapses<<<dim3(Ncon/SYN_BLOCK_SIZE + 1), dim3(SYN_BLOCK_SIZE)>>>(ys_dev, I_syn_partial_dev, I_syns_dev, weights_dev, delays_dev, pre_conns_dev, post_conns_dev,
-				spike_times_dev, num_spikes_syn_dev, num_spikes_neur_dev, t, h, exp_psc, Nneur, Ncon);
+		integrate_synapses<<<dim3(Ncon/SYN_BLOCK_SIZE + 1), dim3(SYN_BLOCK_SIZE)>>>(ys_dev, weights_dev, delays_dev, pre_conns_dev, post_conns_dev,
+				spike_times_dev, num_spikes_syn_dev, num_spikes_neur_dev, t, Nneur, Ncon);
 		cudaDeviceSynchronize();
 		if ((t % T_sim_partial) == 0){
 			cerr << t*h << endl;
@@ -351,12 +351,17 @@ void malloc_neur_memory(){
 	m_chs = new float[Nneur];
 	n_chs = new float[Nneur];
 	h_chs = new float[Nneur];
-	I_syns = new float[Nneur]();
-	I_syns_last = new float[Nneur]();
 	I_es = new float[Nneur];
-	I_psns = new float[Nneur]();
+
+	ys = new float[Nneur]();
+	I_syns = new float[Nneur]();
 	y_psns = new float[Nneur]();
+	I_psns = new float[Nneur]();
+
+	I_last = new float[Nneur]();
+
 	exp_w_p = new float[Nneur];
+
 	// if num-th spike occur at a time t on n-th neuron then,
 	// t is stored in element with index Nneur*num + n
 	// spike_times[Nneur*num + n] = t
@@ -365,8 +370,6 @@ void malloc_neur_memory(){
 }
 
 void malloc_conn_memory(){
-	ys = new float[Ncon]();
-	I_syn_partial = new float[Ncon]();
 	weights = new float[Ncon];
 	pre_conns = new int[Ncon];
 	post_conns = new int[Ncon];
@@ -377,51 +380,59 @@ void malloc_conn_memory(){
 void copy2device(){
 	int n_fsize = Nneur*sizeof(float);
 	int n_isize = Nneur*sizeof(int);
+	int s_fsize = Ncon*sizeof(float);
+	int s_isize = Ncon*sizeof(int);
+
+	// Allocating memory for array which contain var's for each neuron
 	cudaMalloc((void**) &V_ms_dev, n_fsize);
 	cudaMalloc((void**) &V_ms_last_dev, n_fsize);
 	cudaMalloc((void**) &m_chs_dev, n_fsize);
 	cudaMalloc((void**) &n_chs_dev, n_fsize);
 	cudaMalloc((void**) &h_chs_dev, n_fsize);
-	cudaMalloc((void**) &I_syns_dev, n_fsize);
-	cudaMalloc((void**) &I_syns_last_dev, n_fsize);
 	cudaMalloc((void**) &I_es_dev, n_fsize);
-	cudaMalloc((void**) &I_psns_dev, n_fsize);
-	cudaMalloc((void**) &y_psns_dev, n_fsize);
-	cudaMalloc((void**) &exp_w_p_dev, n_fsize);
 
-	cudaMalloc((void**) &psn_times_dev, n_isize);
-	cudaMalloc((void**) &psn_seeds_dev, n_isize);
+	cudaMalloc((void**) &ys_dev, n_fsize);
+	cudaMalloc((void**) &I_syns_dev, n_fsize);
+	cudaMalloc((void**) &y_psns_dev, n_fsize);
+	cudaMalloc((void**) &I_psns_dev, n_fsize);
+
+	cudaMalloc((void**) &I_last_dev, n_fsize);
+
+	cudaMalloc((void**) &exp_w_p_dev, n_fsize);
 
 	cudaMalloc((void**) &spike_times_dev, n_isize*T_sim_partial/time_part_syn);
 	cudaMalloc((void**) &num_spikes_neur_dev, n_isize);
 
-	int s_fsize = Ncon*sizeof(float);
-	int s_isize = Ncon*sizeof(int);
-	cudaMalloc((void**) &ys_dev, s_fsize);
-	cudaMalloc((void**) &I_syn_partial_dev, s_fsize);
+	cudaMalloc((void**) &psn_times_dev, n_isize);
+	cudaMalloc((void**) &psn_seeds_dev, n_isize);
+
+	// Allocating memory for array which contain var's for each synapse
 	cudaMalloc((void**) &weights_dev, s_fsize);
 	cudaMalloc((void**) &pre_conns_dev, s_isize);
 	cudaMalloc((void**) &post_conns_dev, s_isize);
 	cudaMalloc((void**) &delays_dev, s_isize);
 	cudaMalloc((void**) &num_spikes_syn_dev, s_isize);
 
+	// Copyng to GPU device memory neuron arrays
 	cudaMemcpy(V_ms_dev, V_ms, n_fsize, cudaMemcpyHostToDevice);
 	cudaMemcpy(V_ms_last_dev, V_ms_last, n_fsize, cudaMemcpyHostToDevice);
 	cudaMemcpy(m_chs_dev, m_chs, n_fsize, cudaMemcpyHostToDevice);
 	cudaMemcpy(n_chs_dev, n_chs, n_fsize, cudaMemcpyHostToDevice);
 	cudaMemcpy(h_chs_dev, h_chs, n_fsize, cudaMemcpyHostToDevice);
-	cudaMemcpy(I_syns_dev, I_syns, n_fsize, cudaMemcpyHostToDevice);
-	cudaMemcpy(I_syns_last_dev, I_syns_last, n_fsize, cudaMemcpyHostToDevice);
 	cudaMemcpy(I_es_dev, I_es, n_fsize, cudaMemcpyHostToDevice);
+
+	cudaMemcpy(ys_dev, ys, n_fsize, cudaMemcpyHostToDevice);
+	cudaMemcpy(I_syns_dev, I_syns, n_fsize, cudaMemcpyHostToDevice);
 	cudaMemcpy(I_psns_dev, I_psns, n_fsize, cudaMemcpyHostToDevice);
 	cudaMemcpy(y_psns_dev, y_psns, n_fsize, cudaMemcpyHostToDevice);
+
+	cudaMemcpy(I_last_dev, I_last, n_fsize, cudaMemcpyHostToDevice);
+
 	cudaMemcpy(exp_w_p_dev, exp_w_p, n_fsize, cudaMemcpyHostToDevice);
 
 	cudaMemcpy(spike_times_dev, spike_times, n_isize*T_sim_partial/time_part_syn, cudaMemcpyHostToDevice);
 	cudaMemcpy(num_spikes_neur_dev, num_spikes_neur, n_isize, cudaMemcpyHostToDevice);
 
-	cudaMemcpy(ys_dev, ys, s_fsize, cudaMemcpyHostToDevice);
-	cudaMemcpy(I_syn_partial_dev, I_syn_partial, s_fsize, cudaMemcpyHostToDevice);
 	cudaMemcpy(weights_dev, weights, s_fsize, cudaMemcpyHostToDevice);
 	cudaMemcpy(pre_conns_dev, pre_conns, s_isize, cudaMemcpyHostToDevice);
 	cudaMemcpy(post_conns_dev, post_conns, s_isize, cudaMemcpyHostToDevice);
