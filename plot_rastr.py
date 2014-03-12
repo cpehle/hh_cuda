@@ -22,6 +22,7 @@ for l in rdr:
 f.close()
 
 pl.plot(times, neurons, '.')
+
 #times = np.array(times, dtype="float")
 #neurons = np.array(neurons, dtype="int")
 #pl.figure()
@@ -37,8 +38,8 @@ pl.plot(times, neurons, '.')
 ##ax10 = pl.subplot(212, sharex = ax00)
 #hi = ax10.hist(times, bins=Tmax/BinSize, histtype='step', color = 'b')
 #ax10.set_ylim(0., max(hi[0]))
-#ax10.set_ylabel(u"Количество спайков в 1 мс")
-#ax10.set_xlabel(u"Время, мс")
+#ax10.set_ylabel("spikes/bin")
+#ax10.set_xlabel("Time, ms")
 #ax10.grid()
 #ax10.set_title(str(idx))
 

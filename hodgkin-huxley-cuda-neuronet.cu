@@ -7,37 +7,13 @@
 #include <climits>
 #include "hodgkin-huxley-cuda-neuronet.h"
 
-#define NEUR_BLOCK_SIZE 128
-#define SYN_BLOCK_SIZE 1000
-
-float h = 0.025f;
 unsigned int seed = 1;
-float SimulationTime = 200.0f; // in ms
-
-int T_sim_partial = 10000; // in time frames
-
-int time_part_syn = 15.0f/h;
-// maximum part of simulating time for which is allocated memory
-// time_part_syn <= T[ms]/h[ms]
-// 15.0f is rough period
-// so the maximum number of spikes per neuron which can be processed is
-// T_sim_particular/time_part_syn
+float h = 0.025f;
+float SimulationTime = 100.0f; // in ms
 
 int Nneur = 100;
 int NumBundle = 1;
 int BundleSize = Nneur/NumBundle;
-
-using namespace std;
-
-// neuron parameters
-__constant__ float Cm    = 1.0f; //  inverse of membrane capacity, 1/pF
-__constant__ float g_Na  = 120.0f; // nS
-__constant__ float g_K   = 36.0f;
-__constant__ float g_L   = .3f;
-__constant__ float E_K   = -77.0f;
-__constant__ float E_Na  = 55.0f;
-__constant__ float E_L   = -54.4f;
-__constant__ float V_peak = 18.0f;
 
 // connection parameters
 float I_e = 5.27f;
@@ -45,8 +21,7 @@ float w_p_start = 1.96f; // pA
 float w_p_stop = 2.04f;
 float w_n = 1.3f;
 float rate = 178.3f;
-float tau_psc = 0.2f;
-float exp_psc = expf(-h/tau_psc);
+
 char f_name[] = "6/";
 
 __device__ float get_random(unsigned int *seed){
@@ -103,7 +78,7 @@ __global__ void integrate_synapses(float* y, float* weight, int* delay, int* pre
 	if (s < Ncon){
 		int pre_neur = pre_conn[s];
 		// if we processed less spikes than there is in presynaptic neuron
-		// we need to check are there new spikes at this moment of time
+		// we need to check whether new spikes at arrive this moment of time
 		if (num_spike_syn[s] < num_spike_neur[pre_neur]){
 			if (spike_time[Nneur*num_spike_syn[s] + pre_neur] == t - delay[s]){
 				y[post_conn[s]] += weight[s];
@@ -132,8 +107,6 @@ __global__ void integrate_neurons(
 				y_psn[n] += exp_w_p[n];
 				psn_time[n] -= (1000.0f/(rate*h))*logf(get_random(psn_seed + n));
 			}
-
-			I_psn[n] = 0.0f;
 
 			float V_mem, n_channel, m_channel, h_channel;
 			float v1, v2, v3, v4;
@@ -196,8 +169,12 @@ __global__ void integrate_neurons(
 		}
 }
 
+using namespace std;
+
 int main(int argc, char* argv[]){
 	init_params(argc, argv);
+	exp_psc = expf(-h/tau_psc);
+	time_part_syn = 10.0f/h;
 	T_sim = SimulationTime/h;
 	init_neurs_from_file();
 	init_conns_from_file();
@@ -292,7 +269,7 @@ void save2file(){
 		idx = n/BundleSize;
 		neur = n - BundleSize*idx;
 		for (int sp_n = 0; sp_n < num_spikes_neur[n]; sp_n++){
-			fprintf(files[idx], "%.1f; %i; \n", spike_times[Nneur*sp_n + n]*h, neur);
+			fprintf(files[idx], "%.3f; %i; \n", spike_times[Nneur*sp_n + n]*h, neur);
 		}
 	}
 
@@ -323,7 +300,7 @@ void swap_spikes(){
 		idx = n/BundleSize;
 		neur = n - BundleSize*idx;
 		for (int sp_n = 0; sp_n < min_spike_nums_syn[n]; sp_n++){
-			fprintf(files[idx], "%.1f; %i; \n", spike_times[Nneur*sp_n + n]*h, neur);
+			fprintf(files[idx], "%.3f; %i; \n", spike_times[Nneur*sp_n + n]*h, neur);
 		}
 
 		for (int sp_n = min_spike_nums_syn[n]; sp_n < num_spikes_neur[n]; sp_n++){
@@ -459,9 +436,10 @@ void init_params(int argc, char* argv[]){
 		switch (i){
 			case 1: str >> SimulationTime; break;
 			case 2: str >> h; break;
-			case 3: str >> w_p_start; break;
-			case 4: str >> w_p_stop; break;
-			case 5: str >> f_name; break;
+			case 3: str >> f_name; break;
+			case 4: str >> seed; break;
+			case 5: str >> w_p_start; break;
+			case 6: str >> w_p_stop; break;
 		}
 	}
 }

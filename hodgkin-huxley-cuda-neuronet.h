@@ -9,6 +9,30 @@
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
 
+#define NEUR_BLOCK_SIZE 128
+#define SYN_BLOCK_SIZE 1000
+
+// neuron parameters
+__constant__ float Cm    = 1.0f; //  inverse of membrane capacity, 1/pF
+__constant__ float g_Na  = 120.0f; // nS
+__constant__ float g_K   = 36.0f;
+__constant__ float g_L   = .3f;
+__constant__ float E_K   = -77.0f;
+__constant__ float E_Na  = 55.0f;
+__constant__ float E_L   = -54.4f;
+__constant__ float V_peak = 18.0f;
+
+int T_sim_partial = 10000; // in time frames
+int time_part_syn;
+// maximum part of simulating time for which is allocated memory
+// time_part_syn <= T[ms]/h[ms]
+// 15.0f is rough period
+// so the maximum number of spikes per neuron which can be processed is
+// T_sim_particular/time_part_syn
+
+float tau_psc = 0.2f;
+float exp_psc;
+
 // Variables for each neuron
 float* V_ms;
 float* V_ms_last;
