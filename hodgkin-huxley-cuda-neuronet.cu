@@ -9,20 +9,22 @@
 
 unsigned int seed = 1;
 float h = 0.025f;
-float SimulationTime = 100.0f; // in ms
+float SimulationTime = 10000000.0f; // in ms
 
-int Nneur = 100;
-int NumBundle = 1;
-int BundleSize = Nneur/NumBundle;
+int Nneur = 4000;
+int W_P_BUND_SZ = 100; // Number of neurons in bundle with same w_ps
+int W_P_NUM_BUND = Nneur/W_P_BUND_SZ;
+int BUND_SZ = 2;  // Number of neurons in a single realization
+int NUM_BUND = W_P_BUND_SZ/BUND_SZ;
 
 // connection parameters
 float I_e = 5.27f;
-float w_p_start = 1.96f; // pA
-float w_p_stop = 2.04f;
-float w_n = 1.3f;
-float rate = 178.3f;
+float w_p_start = 1.0f; // pA
+float w_p_stop = 2.0f;
+float w_n = 5.4f;
+float rate = 160.0f;
 
-char f_name[] = "6/";
+char f_name[] = "2";
 
 __device__ float get_random(unsigned int *seed){
 	// return random number homogeneously distributed in interval [0:1]
@@ -179,9 +181,9 @@ int main(int argc, char* argv[]){
 	init_neurs_from_file();
 	init_conns_from_file();
 	copy2device();
-	clear_files();
+//	clear_files();
 
-	init_poisson<<<dim3(Nneur/NEUR_BLOCK_SIZE + 1), dim3(NEUR_BLOCK_SIZE)>>>(psn_times_dev, psn_seeds_dev, seed, rate, h, Nneur, BundleSize);
+	init_poisson<<<dim3(Nneur/NEUR_BLOCK_SIZE + 1), dim3(NEUR_BLOCK_SIZE)>>>(psn_times_dev, psn_seeds_dev, seed, rate, h, Nneur, W_P_BUND_SZ);
 	clock_t start = clock();
 	for (int t = 1; t < T_sim; t++){
 		integrate_neurons<<<dim3(Nneur/NEUR_BLOCK_SIZE + 1), dim3(NEUR_BLOCK_SIZE)>>>(V_ms_dev, V_ms_last_dev, n_chs_dev, m_chs_dev, h_chs_dev, spike_times_dev, num_spikes_neur_dev,
@@ -214,12 +216,11 @@ int main(int argc, char* argv[]){
 
 void init_conns_from_file(){
 	int Ncon_part;
-	int Nneur_part = Nneur/NumBundle;
 
 	ifstream con_file;
 	con_file.open("nn_params.csv");
 	con_file >> Ncon_part;
-	Ncon = Ncon_part*NumBundle;
+	Ncon = Ncon_part*W_P_NUM_BUND*NUM_BUND;
 	cerr << "Number of connections: " << Ncon << endl;
 	malloc_conn_memory();
 	float delay;
@@ -227,10 +228,10 @@ void init_conns_from_file(){
 
 	for (int s = 0; s < Ncon_part; s++){
 		con_file >> pre >> post >> delay;
-		for (int bund = 0; bund < NumBundle; bund++){
+		for (int bund = 0; bund < W_P_NUM_BUND*NUM_BUND; bund++){
 			int idx = bund*Ncon_part + s;
-			pre_conns[idx] = pre + bund*Nneur_part;
-			post_conns[idx] = post + bund*Nneur_part;
+			pre_conns[idx] = pre + bund*BUND_SZ;
+			post_conns[idx] = post + bund*BUND_SZ;
 			delays[idx] = delay/h;
 			weights[idx] = (expf(1.0f)/tau_psc)*w_n;
 		}
@@ -239,50 +240,58 @@ void init_conns_from_file(){
 }
 
 void init_neurs_from_file(){
-	srand(0);
 	malloc_neur_memory();
-	for (int bund = 0; bund < NumBundle; bund++){
-		for (int n = 0; n < BundleSize; n++){
-			int idx = BundleSize*bund + n;
+	for (int bund = 0; bund < W_P_NUM_BUND; bund++){
+		for (int n = 0; n < W_P_BUND_SZ; n++){
+			int idx = W_P_BUND_SZ*bund + n;
 			V_ms[idx] = 32.9066f;
 			V_ms_last[idx] = 32.9065f;
 			n_chs[idx] = 0.574678f;
 			m_chs[idx] = 0.913177f;
 			h_chs[idx] = 0.223994f;
 			I_es[idx] = I_e;
-			exp_w_p[idx] = (expf(1.0f)/tau_psc)*(w_p_start + (w_p_stop - w_p_start)*bund/NumBundle);
+			exp_w_p[idx] = (expf(1.0f)/tau_psc)*(w_p_start + (w_p_stop - w_p_start)*bund/W_P_NUM_BUND);
 		}
 	}
 }
 
 void save2file(){
-	FILE** files = new FILE*[NumBundle];
+	FILE** files = new FILE*[W_P_NUM_BUND*NUM_BUND];
 	stringstream s;
 	char* name = new char[500];
-	for (int i = 0; i < NumBundle; i++){
-		s << f_name << "w_p_" << w_p_start + (w_p_stop - w_p_start)*i/NumBundle << endl;
-		s >> name;
-		files[i] = fopen(name, "a");
+	for (int i = 0; i < W_P_NUM_BUND; i++){
+		for (int j = 0; j < NUM_BUND; j++){
+			s << f_name << "/"<< j << "/w_p_" << w_p_start + (w_p_stop - w_p_start)*i/W_P_NUM_BUND << endl;
+			s >> name;
+			files[NUM_BUND*i + j] = fopen(name, "a");
+		}
 	}
-	int idx, neur;
+	int w_p_bund_idx, w_p_bund_neur, bund_idx, neur;
 	for (int n = 0; n < Nneur; n++){
-		idx = n/BundleSize;
-		neur = n - BundleSize*idx;
+		w_p_bund_idx = n/W_P_BUND_SZ;
+		w_p_bund_neur = n - W_P_BUND_SZ*w_p_bund_idx;
+		bund_idx = w_p_bund_neur/BUND_SZ;
+		neur = w_p_bund_neur - BUND_SZ*bund_idx;
 		for (int sp_n = 0; sp_n < num_spikes_neur[n]; sp_n++){
-			fprintf(files[idx], "%.3f; %i; \n", spike_times[Nneur*sp_n + n]*h, neur);
+			fprintf(files[NUM_BUND*w_p_bund_idx + bund_idx], "%.3f; %i; \n", spike_times[Nneur*sp_n + n]*h, neur);
 		}
 	}
 
+	for (int i = 0; i < W_P_NUM_BUND*NUM_BUND; i++){
+		fclose(files[i]);
+	}
 }
 
 void swap_spikes(){
-	FILE** files = new FILE*[NumBundle];
+	FILE** files = new FILE*[W_P_NUM_BUND*NUM_BUND];
 	stringstream s;
 	char* name = new char[500];
-	for (int i = 0; i < NumBundle; i++){
-		s << f_name << "w_p_" << w_p_start + (w_p_stop - w_p_start)*i/NumBundle << endl;
-		s >> name;
-		files[i] = fopen(name, "a");
+	for (int i = 0; i < W_P_NUM_BUND; i++){
+		for (int j = 0; j < NUM_BUND; j++){
+			s << f_name << "/"<< j << "/w_p_" << w_p_start + (w_p_stop - w_p_start)*i/W_P_NUM_BUND << endl;
+			s >> name;
+			files[NUM_BUND*i + j] = fopen(name, "a");
+		}
 	}
 
 	int* spike_times_temp = new int[Nneur*T_sim_partial/time_part_syn];
@@ -295,12 +304,14 @@ void swap_spikes(){
 			min_spike_nums_syn[pre_conns[s]] = num_spikes_syn[s];
 		}
 	}
-	int idx, neur;
+	int w_p_bund_idx, w_p_bund_neur, bund_idx, neur;
 	for (int n = 0; n < Nneur; n++){
-		idx = n/BundleSize;
-		neur = n - BundleSize*idx;
+		w_p_bund_idx = n/W_P_BUND_SZ;
+		w_p_bund_neur = n - W_P_BUND_SZ*w_p_bund_idx;
+		bund_idx = w_p_bund_neur/BUND_SZ;
+		neur = w_p_bund_neur - BUND_SZ*bund_idx;
 		for (int sp_n = 0; sp_n < min_spike_nums_syn[n]; sp_n++){
-			fprintf(files[idx], "%.3f; %i; \n", spike_times[Nneur*sp_n + n]*h, neur);
+			fprintf(files[NUM_BUND*w_p_bund_idx + bund_idx], "%.3f; %i; \n", spike_times[Nneur*sp_n + n]*h, neur);
 		}
 
 		for (int sp_n = min_spike_nums_syn[n]; sp_n < num_spikes_neur[n]; sp_n++){
@@ -309,7 +320,7 @@ void swap_spikes(){
 		num_spikes_neur[n] = num_spikes_neur[n] - min_spike_nums_syn[n];
 	}
 
-	for (int i = 0; i < NumBundle; i++){
+	for (int i = 0; i < W_P_NUM_BUND*NUM_BUND; i++){
 		fclose(files[i]);
 	}
 
@@ -418,11 +429,11 @@ void copy2device(){
 }
 
 void clear_files(){
-	FILE** files = new FILE*[NumBundle];
+	FILE** files = new FILE*[W_P_NUM_BUND];
 	stringstream s;
 	char* name = new char[500];
-	for (int i = 0; i < NumBundle; i++){
-		s << f_name << "w_p_" << w_p_start + (w_p_stop - w_p_start)*i/NumBundle << endl;
+	for (int i = 0; i < W_P_NUM_BUND; i++){
+		s << f_name << "w_p_" << w_p_start + (w_p_stop - w_p_start)*i/W_P_NUM_BUND << endl;
 		s >> name;
 		files[i] = fopen(name, "w");
 		fclose(files[i]);
@@ -438,8 +449,9 @@ void init_params(int argc, char* argv[]){
 			case 2: str >> h; break;
 			case 3: str >> f_name; break;
 			case 4: str >> seed; break;
-			case 5: str >> w_p_start; break;
-			case 6: str >> w_p_stop; break;
+			case 5: str >> rate; break;
+			case 6: str >> w_p_start; break;
+			case 7: str >> w_p_stop; break;
 		}
 	}
 }

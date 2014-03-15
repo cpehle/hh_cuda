@@ -8,9 +8,9 @@ import csv
 import numpy as np
 import matplotlib.pyplot as pl
 
-idx = 6
+idx = 3
 
-f = open(str(idx) + '/w_p_1.96', "r")
+f = open('0/' + str(idx) + '/w_p_1.7', "r")
 BinSize = 500
 
 rdr = csv.reader(f,delimiter=";")
