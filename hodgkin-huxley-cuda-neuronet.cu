@@ -9,10 +9,10 @@
 
 unsigned int seed = 1;
 float h = 0.025f;
-float SimulationTime = 10000000.0f; // in ms
+float SimulationTime = 1000.0f; // in ms
 
-int Nneur = 4000;
-int W_P_BUND_SZ = 100; // Number of neurons in bundle with same w_ps
+int Nneur = 8000;
+int W_P_BUND_SZ = 400; // Number of neurons in bundle with same w_ps
 int W_P_NUM_BUND = Nneur/W_P_BUND_SZ;
 int BUND_SZ = 2;  // Number of neurons in a single realization
 int NUM_BUND = W_P_BUND_SZ/BUND_SZ;
@@ -24,7 +24,7 @@ float w_p_stop = 2.0f;
 float w_n = 5.4f;
 float rate = 160.0f;
 
-char f_name[] = "2";
+char f_name[] = "4";
 
 __device__ float get_random(unsigned int *seed){
 	// return random number homogeneously distributed in interval [0:1]
@@ -83,7 +83,7 @@ __global__ void integrate_synapses(float* y, float* weight, int* delay, int* pre
 		// we need to check whether new spikes at arrive this moment of time
 		if (num_spike_syn[s] < num_spike_neur[pre_neur]){
 			if (spike_time[Nneur*num_spike_syn[s] + pre_neur] == t - delay[s]){
-				y[post_conn[s]] += weight[s];
+				atomicAdd(&y[post_conn[s]], weight[s]);
 				num_spike_syn[s]++;
 			}
 		}
@@ -163,10 +163,9 @@ __global__ void integrate_neurons(
 			V_m_last[n] = V_mem;
 			I_syn_last[n] = I_syn[n] + I_psn[n];
 
-//			if (n == 0){
-//				printf("%.2f; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g; %g\n",
-//						t*h, V_m[n], V_m[n+1], n_ch[n], m_ch[n], h_ch[n], I_psn[n], y_psn[n],
-//						I_syn[n], I_syn[n+1], I_syn[n+2], V_m[n+2]);
+//			if (n == 3500){
+//				printf("%.3f; %g; %g; %g; %g; %g; %g\n",
+//						t*h, V_m[n], V_m[n+1], I_psn[n], I_psn[n+1], I_syn[n], I_syn[n+1]);
 //			}
 		}
 }
