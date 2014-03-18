@@ -7,13 +7,13 @@
 #include <climits>
 #include "hodgkin-huxley-cuda-neuronet.h"
 
-unsigned int seed = 1;
+unsigned int seed = 6;
 float h = 0.025f;
 float SimulationTime = 1000.0f; // in ms
 
-int Nneur = 8000;
-int W_P_BUND_SZ = 400; // Number of neurons in bundle with same w_ps
-int W_P_NUM_BUND = Nneur/W_P_BUND_SZ;
+int Nneur = 16000;
+int W_P_NUM_BUND = 20; // number of different poisson weights
+int W_P_BUND_SZ = Nneur/W_P_NUM_BUND; // Number of neurons in bundle with same w_ps
 int BUND_SZ = 2;  // Number of neurons in a single realization
 int NUM_BUND = W_P_BUND_SZ/BUND_SZ;
 
@@ -24,7 +24,7 @@ float w_p_stop = 2.0f;
 float w_n = 5.4f;
 float rate = 160.0f;
 
-char f_name[] = "4";
+char f_name[] = "6";
 
 __device__ float get_random(unsigned int *seed){
 	// return random number homogeneously distributed in interval [0:1]
@@ -446,11 +446,15 @@ void init_params(int argc, char* argv[]){
 		switch (i){
 			case 1: str >> SimulationTime; break;
 			case 2: str >> h; break;
-			case 3: str >> f_name; break;
-			case 4: str >> seed; break;
-			case 5: str >> rate; break;
-			case 6: str >> w_p_start; break;
-			case 7: str >> w_p_stop; break;
+			case 3: str >> Nneur; break;
+			case 4: str >> W_P_NUM_BUND; break;
+			case 5: str >> f_name; break;
+			case 6: str >> seed; break;
+			case 7: str >> rate; break;
+			case 8: str >> w_p_start; break;
+			case 9: str >> w_p_stop; break;
 		}
 	}
+	W_P_BUND_SZ = Nneur/W_P_NUM_BUND;
+	NUM_BUND = W_P_BUND_SZ/BUND_SZ;
 }
