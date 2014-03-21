@@ -5,11 +5,13 @@
 #include <cmath>
 #include <cstdlib>
 #include <climits>
+#include <ctime>
+#include <cstring>
 #include "hodgkin-huxley-cuda-neuronet.h"
 
-unsigned int seed = 6;
-float h = 0.025f;
-float SimulationTime = 1000.0f; // in ms
+unsigned int seed = 0;
+float h = 0.05f;
+float SimulationTime = 1000000.0f; // in ms
 
 int Nneur = 16000;
 int W_P_NUM_BUND = 20; // number of different poisson weights
@@ -24,9 +26,9 @@ float w_p_stop = 2.0f;
 float w_n = 5.4f;
 float rate = 160.0f;
 
-char f_name[] = "6";
+char f_name[] = "0";
 
-__device__ float get_random(unsigned int *seed){
+__device__ __host__ float get_random(unsigned int *seed){
 	// return random number homogeneously distributed in interval [0:1]
 	unsigned long a = 16807;
 	unsigned long m = 2147483647;
@@ -184,7 +186,9 @@ int main(int argc, char* argv[]){
 
 	init_poisson<<<dim3(Nneur/NEUR_BLOCK_SIZE + 1), dim3(NEUR_BLOCK_SIZE)>>>(psn_times_dev, psn_seeds_dev, seed, rate, h, Nneur, W_P_BUND_SZ);
 	clock_t start = clock();
-	for (int t = 1; t < T_sim; t++){
+	time_t curr_time = time(0);
+    char* st = asctime(localtime(&curr_time));
+    for (int t = 1; t < T_sim; t++){
 		integrate_neurons<<<dim3(Nneur/NEUR_BLOCK_SIZE + 1), dim3(NEUR_BLOCK_SIZE)>>>(V_ms_dev, V_ms_last_dev, n_chs_dev, m_chs_dev, h_chs_dev, spike_times_dev, num_spikes_neur_dev,
 				I_es_dev, ys_dev, I_syns_dev, y_psns_dev, I_psns_dev, psn_times_dev, psn_seeds_dev, I_last_dev, exp_w_p_dev, exp_psc, rate, Nneur, t, h);
 		cudaDeviceSynchronize();
@@ -205,11 +209,14 @@ int main(int argc, char* argv[]){
 	cudaDeviceSynchronize();
 	cudaMemcpy(spike_times, spike_times_dev, Nneur*sizeof(int)*T_sim_partial/time_part_syn, cudaMemcpyDeviceToHost);
 	cudaMemcpy(num_spikes_neur, num_spikes_neur_dev, Nneur*sizeof(int), cudaMemcpyDeviceToHost);
-	float time = ((float)clock() - (float)start)*1000./CLOCKS_PER_SEC;
-	cerr << "Elapsed time: " << time << " ms" << endl;
+	float s_time = ((float) clock() - (float) start)*1000./CLOCKS_PER_SEC;
+	cerr << "Elapsed time: " << s_time << " ms" << endl;
 
 	save2file();
 	cerr << "Finished!" << endl;
+	curr_time = time(0);
+    cout << "Start: " << st << endl;
+    cout << "Stop: " << asctime(localtime(&curr_time)) << endl;
 	return 0;
 }
 
@@ -243,11 +250,24 @@ void init_neurs_from_file(){
 	for (int bund = 0; bund < W_P_NUM_BUND; bund++){
 		for (int n = 0; n < W_P_BUND_SZ; n++){
 			int idx = W_P_BUND_SZ*bund + n;
+//			V_m  [-75.498966190434544 32.903103809336962]
+//			n_ch [0.35938303204948491 0.75744212484659923]
+//			m_ch [0.014991044945903446 0.98952995346469008]
+//			h_ch [0.066984672622615815 0.51213116767932043]
+
 			V_ms[idx] = 32.9066f;
 			V_ms_last[idx] = 32.9065f;
 			n_chs[idx] = 0.574678f;
 			m_chs[idx] = 0.913177f;
 			h_chs[idx] = 0.223994f;
+
+//			unsigned int ivp_seed = seed + 1000 * n;
+//			V_ms[idx] = -75.4989f + (32.9031f + 75.4989f) * get_random(&ivp_seed);
+//			V_ms_last[idx] = V_ms[idx] - 0.001f;
+//			n_chs[idx] = 0.3593f + (0.7574f - 0.3593f) * get_random(&ivp_seed);
+//			m_chs[idx] = 0.0149f + (0.0149f - 0.9895f) * get_random(&ivp_seed);
+//			h_chs[idx] = 0.0669f + (0.0669f - 0.5121f) * get_random(&ivp_seed);
+
 			I_es[idx] = I_e;
 			exp_w_p[idx] = (expf(1.0f)/tau_psc)*(w_p_start + (w_p_stop - w_p_start)*bund/W_P_NUM_BUND);
 		}
@@ -448,11 +468,13 @@ void init_params(int argc, char* argv[]){
 			case 2: str >> h; break;
 			case 3: str >> Nneur; break;
 			case 4: str >> W_P_NUM_BUND; break;
-			case 5: str >> f_name; break;
-			case 6: str >> seed; break;
-			case 7: str >> rate; break;
-			case 8: str >> w_p_start; break;
-			case 9: str >> w_p_stop; break;
+			case 5: str >> BUND_SZ; break;
+			case 6: str >> f_name; break;
+			case 7: str >> seed; break;
+			case 8: str >> rate; break;
+			case 9: str >> w_p_start; break;
+			case 10: str >> w_p_stop; break;
+			case 11: str >> w_n; break;
 		}
 	}
 	W_P_BUND_SZ = Nneur/W_P_NUM_BUND;
