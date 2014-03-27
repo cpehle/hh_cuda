@@ -165,7 +165,7 @@ __global__ void integrate_neurons(
 			V_m_last[n] = V_mem;
 			I_syn_last[n] = I_syn[n] + I_psn[n];
 
-//			if (n == 3500){
+//			if (n == 0){
 //				printf("%.3f; %g; %g; %g; %g; %g; %g\n",
 //						t*h, V_m[n], V_m[n+1], I_psn[n], I_psn[n+1], I_syn[n], I_syn[n+1]);
 //			}
@@ -188,6 +188,7 @@ int main(int argc, char* argv[]){
 	clock_t start = clock();
 	time_t curr_time = time(0);
     char* st = asctime(localtime(&curr_time));
+	cerr << "Start: " << st << endl;
     for (int t = 1; t < T_sim; t++){
 		integrate_neurons<<<dim3(Nneur/NEUR_BLOCK_SIZE + 1), dim3(NEUR_BLOCK_SIZE)>>>(V_ms_dev, V_ms_last_dev, n_chs_dev, m_chs_dev, h_chs_dev, spike_times_dev, num_spikes_neur_dev,
 				I_es_dev, ys_dev, I_syns_dev, y_psns_dev, I_psns_dev, psn_times_dev, psn_seeds_dev, I_last_dev, exp_w_p_dev, exp_psc, rate, Nneur, t, h);
@@ -196,7 +197,7 @@ int main(int argc, char* argv[]){
 				spike_times_dev, num_spikes_syn_dev, num_spikes_neur_dev, t, Nneur, Ncon);
 		cudaDeviceSynchronize();
 		if ((t % T_sim_partial) == 0){
-			cerr << t*h << endl;
+			cout << t*h << endl;
 			cudaMemcpy(spike_times, spike_times_dev, Nneur*sizeof(int)*T_sim_partial/time_part_syn, cudaMemcpyDeviceToHost);
 			cudaMemcpy(num_spikes_neur, num_spikes_neur_dev, Nneur*sizeof(int), cudaMemcpyDeviceToHost);
 			cudaMemcpy(num_spikes_syn, num_spikes_syn_dev, Ncon*sizeof(int), cudaMemcpyDeviceToHost);
@@ -209,14 +210,13 @@ int main(int argc, char* argv[]){
 	cudaDeviceSynchronize();
 	cudaMemcpy(spike_times, spike_times_dev, Nneur*sizeof(int)*T_sim_partial/time_part_syn, cudaMemcpyDeviceToHost);
 	cudaMemcpy(num_spikes_neur, num_spikes_neur_dev, Nneur*sizeof(int), cudaMemcpyDeviceToHost);
-	float s_time = ((float) clock() - (float) start)*1000./CLOCKS_PER_SEC;
-	cerr << "Elapsed time: " << s_time << " ms" << endl;
-
-	save2file();
-	cerr << "Finished!" << endl;
 	curr_time = time(0);
-    cout << "Start: " << st << endl;
-    cout << "Stop: " << asctime(localtime(&curr_time)) << endl;
+	cerr << "Stop: " << asctime(localtime(&curr_time)) << endl;
+	cerr << "Finished!" << endl;
+
+//	float s_time = ((float) clock() - (float) start)*1000./CLOCKS_PER_SEC;
+//	cerr << "Elapsed time: " << s_time << " ms" << endl;
+	save2file();
 	return 0;
 }
 
@@ -227,7 +227,7 @@ void init_conns_from_file(){
 	con_file.open("nn_params.csv");
 	con_file >> Ncon_part;
 	Ncon = Ncon_part*W_P_NUM_BUND*NUM_BUND;
-	cerr << "Number of connections: " << Ncon << endl;
+//	cout << "Number of connections: " << Ncon << endl;
 	malloc_conn_memory();
 	float delay;
 	int pre, post;
@@ -261,6 +261,13 @@ void init_neurs_from_file(){
 			m_chs[idx] = 0.913177f;
 			h_chs[idx] = 0.223994f;
 
+			// IV at equilibrium state
+			V_ms[idx] = -60.8457f;
+			V_ms_last[idx] = -60.8450f;
+			n_chs[idx] = 0.3763f;
+			m_chs[idx] = 0.0833f;
+			h_chs[idx] = 0.4636f;
+
 //			unsigned int ivp_seed = seed + 1000 * n;
 //			V_ms[idx] = -75.4989f + (32.9031f + 75.4989f) * get_random(&ivp_seed);
 //			V_ms_last[idx] = V_ms[idx] - 0.001f;
@@ -292,7 +299,7 @@ void save2file(){
 		bund_idx = w_p_bund_neur/BUND_SZ;
 		neur = w_p_bund_neur - BUND_SZ*bund_idx;
 		for (int sp_n = 0; sp_n < num_spikes_neur[n]; sp_n++){
-			fprintf(files[NUM_BUND*w_p_bund_idx + bund_idx], "%.3f; %i; \n", spike_times[Nneur*sp_n + n]*h, neur);
+			fprintf(files[NUM_BUND*w_p_bund_idx + bund_idx], "%.3f;%i\n", spike_times[Nneur*sp_n + n]*h, neur);
 		}
 	}
 
@@ -330,7 +337,7 @@ void swap_spikes(){
 		bund_idx = w_p_bund_neur/BUND_SZ;
 		neur = w_p_bund_neur - BUND_SZ*bund_idx;
 		for (int sp_n = 0; sp_n < min_spike_nums_syn[n]; sp_n++){
-			fprintf(files[NUM_BUND*w_p_bund_idx + bund_idx], "%.3f; %i; \n", spike_times[Nneur*sp_n + n]*h, neur);
+			fprintf(files[NUM_BUND*w_p_bund_idx + bund_idx], "%.3f;%i\n", spike_times[Nneur*sp_n + n]*h, neur);
 		}
 
 		for (int sp_n = min_spike_nums_syn[n]; sp_n < num_spikes_neur[n]; sp_n++){
