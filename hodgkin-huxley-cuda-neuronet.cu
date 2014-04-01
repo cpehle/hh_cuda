@@ -11,7 +11,7 @@
 
 unsigned int seed = 0;
 float h = 0.05f;
-float SimulationTime = 1000000.0f; // in ms
+float SimulationTime = 10000.0f; // in ms
 
 int Nneur = 16000;
 int W_P_NUM_BUND = 20; // number of different poisson weights
@@ -216,6 +216,7 @@ int main(int argc, char* argv[]){
 
 //	float s_time = ((float) clock() - (float) start)*1000./CLOCKS_PER_SEC;
 //	cerr << "Elapsed time: " << s_time << " ms" << endl;
+	save2HOST();
 	save2file();
 	return 0;
 }
@@ -250,16 +251,12 @@ void init_neurs_from_file(){
 	for (int bund = 0; bund < W_P_NUM_BUND; bund++){
 		for (int n = 0; n < W_P_BUND_SZ; n++){
 			int idx = W_P_BUND_SZ*bund + n;
-//			V_m  [-75.498966190434544 32.903103809336962]
-//			n_ch [0.35938303204948491 0.75744212484659923]
-//			m_ch [0.014991044945903446 0.98952995346469008]
-//			h_ch [0.066984672622615815 0.51213116767932043]
 
-			V_ms[idx] = 32.9066f;
-			V_ms_last[idx] = 32.9065f;
-			n_chs[idx] = 0.574678f;
-			m_chs[idx] = 0.913177f;
-			h_chs[idx] = 0.223994f;
+//			V_ms[idx] = 32.9066f;
+//			V_ms_last[idx] = 32.9065f;
+//			n_chs[idx] = 0.574678f;
+//			m_chs[idx] = 0.913177f;
+//			h_chs[idx] = 0.223994f;
 
 			// IV at equilibrium state
 			V_ms[idx] = -60.8457f;
@@ -281,45 +278,23 @@ void init_neurs_from_file(){
 	}
 }
 
-void save2file(){
-	FILE** files = new FILE*[W_P_NUM_BUND*NUM_BUND];
-	stringstream s;
-	char* name = new char[500];
-	for (int i = 0; i < W_P_NUM_BUND; i++){
-		for (int j = 0; j < NUM_BUND; j++){
-			s << f_name << "/"<< j << "/w_p_" << w_p_start + (w_p_stop - w_p_start)*i/W_P_NUM_BUND << endl;
-			s >> name;
-			files[NUM_BUND*i + j] = fopen(name, "a");
-		}
-	}
-	int w_p_bund_idx, w_p_bund_neur, bund_idx, neur;
+void save2HOST(){
+	int w_p_bund_idx, w_p_bund_neur, bund_idx, idx, neur;
 	for (int n = 0; n < Nneur; n++){
 		w_p_bund_idx = n/W_P_BUND_SZ;
 		w_p_bund_neur = n - W_P_BUND_SZ*w_p_bund_idx;
 		bund_idx = w_p_bund_neur/BUND_SZ;
 		neur = w_p_bund_neur - BUND_SZ*bund_idx;
+		idx = NUM_BUND*w_p_bund_idx + bund_idx;
 		for (int sp_n = 0; sp_n < num_spikes_neur[n]; sp_n++){
-			fprintf(files[NUM_BUND*w_p_bund_idx + bund_idx], "%.3f;%i\n", spike_times[Nneur*sp_n + n]*h, neur);
+			res_senders[W_P_NUM_BUND*NUM_BUND*num_spk_in_bund[idx] + idx] = neur;
+			res_times[W_P_NUM_BUND*NUM_BUND*num_spk_in_bund[idx] + idx] = spike_times[Nneur*sp_n + n]*h;
+			num_spk_in_bund[idx]++;
 		}
-	}
-
-	for (int i = 0; i < W_P_NUM_BUND*NUM_BUND; i++){
-		fclose(files[i]);
 	}
 }
 
 void swap_spikes(){
-	FILE** files = new FILE*[W_P_NUM_BUND*NUM_BUND];
-	stringstream s;
-	char* name = new char[500];
-	for (int i = 0; i < W_P_NUM_BUND; i++){
-		for (int j = 0; j < NUM_BUND; j++){
-			s << f_name << "/"<< j << "/w_p_" << w_p_start + (w_p_stop - w_p_start)*i/W_P_NUM_BUND << endl;
-			s >> name;
-			files[NUM_BUND*i + j] = fopen(name, "a");
-		}
-	}
-
 	int* spike_times_temp = new int[Nneur*T_sim_partial/time_part_syn];
 	int* min_spike_nums_syn = new int[Nneur];
 	for (int n = 0; n < Nneur; n++){
@@ -330,24 +305,22 @@ void swap_spikes(){
 			min_spike_nums_syn[pre_conns[s]] = num_spikes_syn[s];
 		}
 	}
-	int w_p_bund_idx, w_p_bund_neur, bund_idx, neur;
+	int w_p_bund_idx, w_p_bund_neur, bund_idx, neur, idx;
 	for (int n = 0; n < Nneur; n++){
 		w_p_bund_idx = n/W_P_BUND_SZ;
 		w_p_bund_neur = n - W_P_BUND_SZ*w_p_bund_idx;
 		bund_idx = w_p_bund_neur/BUND_SZ;
 		neur = w_p_bund_neur - BUND_SZ*bund_idx;
+		idx = NUM_BUND*w_p_bund_idx + bund_idx;
 		for (int sp_n = 0; sp_n < min_spike_nums_syn[n]; sp_n++){
-			fprintf(files[NUM_BUND*w_p_bund_idx + bund_idx], "%.3f;%i\n", spike_times[Nneur*sp_n + n]*h, neur);
-		}
+			res_senders[W_P_NUM_BUND*NUM_BUND*num_spk_in_bund[idx] + idx] = neur;
+			res_times[W_P_NUM_BUND*NUM_BUND*num_spk_in_bund[idx] + idx] = spike_times[Nneur*sp_n + n]*h;
+			num_spk_in_bund[idx]++;		}
 
 		for (int sp_n = min_spike_nums_syn[n]; sp_n < num_spikes_neur[n]; sp_n++){
 			spike_times_temp[Nneur*(sp_n - min_spike_nums_syn[n]) + n] = spike_times[Nneur*sp_n + n];
 		}
 		num_spikes_neur[n] = num_spikes_neur[n] - min_spike_nums_syn[n];
-	}
-
-	for (int i = 0; i < W_P_NUM_BUND*NUM_BUND; i++){
-		fclose(files[i]);
 	}
 
 	for (int s = 0; s < Ncon; s++){
@@ -357,6 +330,25 @@ void swap_spikes(){
 	free(spike_times);
 	free(min_spike_nums_syn);
 	spike_times = spike_times_temp;
+}
+
+void save2file(){
+	FILE* file;
+	stringstream s;
+	char* name = new char[500];
+	for (int i = 0; i < W_P_NUM_BUND; i++){
+		for (int j = 0; j < NUM_BUND; j++){
+			s << f_name << "/"<< j << "/w_p_" << w_p_start + (w_p_stop - w_p_start)*i/W_P_NUM_BUND << endl;
+			s >> name;
+			file = fopen(name, "a");
+			int idx = NUM_BUND*i + j;
+			for (int spk = 0; spk < num_spk_in_bund[idx]; spk++){
+				fprintf(file, "%.3f;%i\n", res_times[W_P_NUM_BUND*NUM_BUND*spk + idx], res_senders[W_P_NUM_BUND*NUM_BUND*spk + idx]);
+			}
+			fclose(file);
+		}
+	}
+
 }
 
 void malloc_neur_memory(){
@@ -381,6 +373,10 @@ void malloc_neur_memory(){
 	// spike_times[Nneur*num + n] = t
 	spike_times = new int[Nneur*T_sim_partial/time_part_syn]();
 	num_spikes_neur = new int[Nneur]();
+	int expected_spk_num = BUND_SZ*SimulationTime/5.0f;
+	res_times = new float[W_P_NUM_BUND*NUM_BUND*expected_spk_num];
+	res_senders = new int[W_P_NUM_BUND*NUM_BUND*expected_spk_num];
+	num_spk_in_bund = new int[W_P_NUM_BUND*NUM_BUND]();
 }
 
 void malloc_conn_memory(){

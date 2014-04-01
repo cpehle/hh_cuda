@@ -88,6 +88,10 @@ int* post_conns_dev;
 int* delays_dev;
 int* num_spikes_syn_dev;
 
+float* res_times;
+int* res_senders;
+int* num_spk_in_bund;
+
 int Ncon;
 
 int T_sim;
@@ -96,9 +100,11 @@ void init_conns_from_file();
 
 void init_neurs_from_file();
 
-void save2file();
+void save2HOST();
 
 void swap_spikes();
+
+void save2file();
 
 void malloc_neur_memory();
 
