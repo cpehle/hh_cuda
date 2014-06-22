@@ -8,6 +8,7 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
+#include <iostream>
 
 #define NEUR_BLOCK_SIZE 128
 #define SYN_BLOCK_SIZE 1000
@@ -117,3 +118,12 @@ void init_poisson();
 void clear_files();
 
 void init_params(int, char*[]);
+
+void checkCudaError(cudaError_t status){
+	std::cout << cudaGetErrorString(status) << std::endl;
+	//	if(cudaStatus != cudaSuccess){
+//		cout << "error!" << endl;
+//	} else {
+//		cout << "success!" << endl;
+//	}
+}

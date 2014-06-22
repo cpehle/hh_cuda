@@ -1,30 +1,28 @@
 #include <cstdio>
-#include <iostream>
 #include <fstream>
 #include <sstream>
 #include <cmath>
 #include <cstdlib>
 #include <climits>
 #include <ctime>
-#include <cstring>
 #include "hodgkin-huxley-cuda-neuronet.h"
 
-unsigned int seed = 0;
-float h = 0.05f;
+unsigned int seed = 1;
+float h = 0.1f;
 float SimulationTime = 10000.0f; // in ms
 
-int Nneur = 16000;
-int W_P_NUM_BUND = 20; // number of different poisson weights
+int Nneur = 20;
+int W_P_NUM_BUND = 1; // number of different poisson weights
 int W_P_BUND_SZ = Nneur/W_P_NUM_BUND; // Number of neurons in bundle with same w_ps
 int BUND_SZ = 2;  // Number of neurons in a single realization
 int NUM_BUND = W_P_BUND_SZ/BUND_SZ;
 
 // connection parameters
 float I_e = 5.27f;
-float w_p_start = 1.0f; // pA
+float w_p_start = 1.8f; // pA
 float w_p_stop = 2.0f;
 float w_n = 5.4f;
-float rate = 160.0f;
+float rate = 200.0f;
 
 char f_name[] = "0";
 
@@ -166,7 +164,7 @@ __global__ void integrate_neurons(
 			I_syn_last[n] = I_syn[n] + I_psn[n];
 
 //			if (n == 0){
-//				printf("%.3f; %g; %g; %g; %g; %g; %g\n",
+//				printf("%.3f;%g;%g;%g;%g;%g;%g\n",
 //						t*h, V_m[n], V_m[n+1], I_psn[n], I_psn[n+1], I_syn[n], I_syn[n+1]);
 //			}
 		}
@@ -182,7 +180,7 @@ int main(int argc, char* argv[]){
 	init_neurs_from_file();
 	init_conns_from_file();
 	copy2device();
-//	clear_files();
+//	cudaError_t er;
 
 	init_poisson<<<dim3(Nneur/NEUR_BLOCK_SIZE + 1), dim3(NEUR_BLOCK_SIZE)>>>(psn_times_dev, psn_seeds_dev, seed, rate, h, Nneur, W_P_BUND_SZ);
 	clock_t start = clock();
@@ -196,6 +194,10 @@ int main(int argc, char* argv[]){
 		integrate_synapses<<<dim3(Ncon/SYN_BLOCK_SIZE + 1), dim3(SYN_BLOCK_SIZE)>>>(ys_dev, weights_dev, delays_dev, pre_conns_dev, post_conns_dev,
 				spike_times_dev, num_spikes_syn_dev, num_spikes_neur_dev, t, Nneur, Ncon);
 		cudaDeviceSynchronize();
+//		if(er != cudaSuccess){
+//			cerr << cudaGetErrorString(er) << endl;
+//		}
+
 		if ((t % T_sim_partial) == 0){
 			cout << t*h << endl;
 			cudaMemcpy(spike_times, spike_times_dev, Nneur*sizeof(int)*T_sim_partial/time_part_syn, cudaMemcpyDeviceToHost);
@@ -228,7 +230,7 @@ void init_conns_from_file(){
 	con_file.open("nn_params.csv");
 	con_file >> Ncon_part;
 	Ncon = Ncon_part*W_P_NUM_BUND*NUM_BUND;
-//	cout << "Number of connections: " << Ncon << endl;
+//	cerr << "Number of connections: " << Ncon << endl;
 	malloc_conn_memory();
 	float delay;
 	int pre, post;
@@ -252,18 +254,19 @@ void init_neurs_from_file(){
 		for (int n = 0; n < W_P_BUND_SZ; n++){
 			int idx = W_P_BUND_SZ*bund + n;
 
-//			V_ms[idx] = 32.9066f;
-//			V_ms_last[idx] = 32.9065f;
-//			n_chs[idx] = 0.574678f;
-//			m_chs[idx] = 0.913177f;
-//			h_chs[idx] = 0.223994f;
+			// IV on limit cycle
+			V_ms[idx] = 32.9066f;
+			V_ms_last[idx] = 32.9065f;
+			n_chs[idx] = 0.574678f;
+			m_chs[idx] = 0.913177f;
+			h_chs[idx] = 0.223994f;
 
 			// IV at equilibrium state
-			V_ms[idx] = -60.8457f;
-			V_ms_last[idx] = -60.8450f;
-			n_chs[idx] = 0.3763f;
-			m_chs[idx] = 0.0833f;
-			h_chs[idx] = 0.4636f;
+//			V_ms[idx] = -60.8457f;
+//			V_ms_last[idx] = -60.8450f;
+//			n_chs[idx] = 0.3763f;
+//			m_chs[idx] = 0.0833f;
+//			h_chs[idx] = 0.4636f;
 
 //			unsigned int ivp_seed = seed + 1000 * n;
 //			V_ms[idx] = -75.4989f + (32.9031f + 75.4989f) * get_random(&ivp_seed);
@@ -388,10 +391,11 @@ void malloc_conn_memory(){
 }
 
 void copy2device(){
-	int n_fsize = Nneur*sizeof(float);
-	int n_isize = Nneur*sizeof(int);
-	int s_fsize = Ncon*sizeof(float);
-	int s_isize = Ncon*sizeof(int);
+	size_t n_fsize = Nneur*sizeof(float);
+	size_t n_isize = Nneur*sizeof(int);
+	size_t s_fsize = Ncon*sizeof(float);
+	size_t s_isize = Ncon*sizeof(int);
+	size_t spike_times_sz = n_isize*T_sim_partial/time_part_syn;
 
 	// Allocating memory for array which contain var's for each neuron
 	cudaMalloc((void**) &V_ms_dev, n_fsize);
@@ -409,8 +413,7 @@ void copy2device(){
 	cudaMalloc((void**) &I_last_dev, n_fsize);
 
 	cudaMalloc((void**) &exp_w_p_dev, n_fsize);
-
-	cudaMalloc((void**) &spike_times_dev, n_isize*T_sim_partial/time_part_syn);
+	cudaMalloc((void**) &spike_times_dev, spike_times_sz);
 	cudaMalloc((void**) &num_spikes_neur_dev, n_isize);
 
 	cudaMalloc((void**) &psn_times_dev, n_isize);
@@ -440,7 +443,7 @@ void copy2device(){
 
 	cudaMemcpy(exp_w_p_dev, exp_w_p, n_fsize, cudaMemcpyHostToDevice);
 
-	cudaMemcpy(spike_times_dev, spike_times, n_isize*T_sim_partial/time_part_syn, cudaMemcpyHostToDevice);
+	cudaMemcpy(spike_times_dev, spike_times, spike_times_sz, cudaMemcpyHostToDevice);
 	cudaMemcpy(num_spikes_neur_dev, num_spikes_neur, n_isize, cudaMemcpyHostToDevice);
 
 	cudaMemcpy(weights_dev, weights, s_fsize, cudaMemcpyHostToDevice);
