@@ -24,7 +24,7 @@ float w_p_stop = 2.0f;
 float w_n = 5.4f;
 float rate = 200.0f;
 
-char f_name[] = "0";
+char f_name[500] = "0";
 
 __device__ __host__ float get_random(unsigned int *seed){
 	// return random number homogeneously distributed in interval [0:1]
@@ -163,10 +163,10 @@ __global__ void integrate_neurons(
 			V_m_last[n] = V_mem;
 			I_syn_last[n] = I_syn[n] + I_psn[n];
 
-//			if (n == 0){
-//				printf("%.3f;%g;%g;%g;%g;%g;%g\n",
-//						t*h, V_m[n], V_m[n+1], I_psn[n], I_psn[n+1], I_syn[n], I_syn[n+1]);
-//			}
+			if (n == 0){
+				printf("%.3f;%g;%g;%g;%g;%g;%g\n",
+						t*h, V_m[n], V_m[n+1], I_psn[n], I_psn[n+1], I_syn[n], I_syn[n+1]);
+			}
 		}
 }
 
@@ -199,7 +199,7 @@ int main(int argc, char* argv[]){
 //		}
 
 		if ((t % T_sim_partial) == 0){
-			cout << t*h << endl;
+//			cout << t*h << endl;
 			cudaMemcpy(spike_times, spike_times_dev, Nneur*sizeof(int)*T_sim_partial/time_part_syn, cudaMemcpyDeviceToHost);
 			cudaMemcpy(num_spikes_neur, num_spikes_neur_dev, Nneur*sizeof(int), cudaMemcpyDeviceToHost);
 			cudaMemcpy(num_spikes_syn, num_spikes_syn_dev, Ncon*sizeof(int), cudaMemcpyDeviceToHost);
