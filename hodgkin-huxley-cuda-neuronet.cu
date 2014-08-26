@@ -163,10 +163,10 @@ __global__ void integrate_neurons(
 			V_m_last[n] = V_mem;
 			I_syn_last[n] = I_syn[n] + I_psn[n];
 
-			if (n == 0){
-				printf("%.3f;%g;%g;%g;%g;%g;%g\n",
-						t*h, V_m[n], V_m[n+1], I_psn[n], I_psn[n+1], I_syn[n], I_syn[n+1]);
-			}
+//			if (n == 0){
+//				printf("%.3f;%g;%g;%g;%g;%g;%g\n",
+//						t*h, V_m[n], V_m[n+1], I_psn[n], I_psn[n+1], I_syn[n], I_syn[n+1]);
+//			}
 		}
 }
 
@@ -199,7 +199,7 @@ int main(int argc, char* argv[]){
 //		}
 
 		if ((t % T_sim_partial) == 0){
-//			cout << t*h << endl;
+			cout << t*h << endl;
 			cudaMemcpy(spike_times, spike_times_dev, Nneur*sizeof(int)*T_sim_partial/time_part_syn, cudaMemcpyDeviceToHost);
 			cudaMemcpy(num_spikes_neur, num_spikes_neur_dev, Nneur*sizeof(int), cudaMemcpyDeviceToHost);
 			cudaMemcpy(num_spikes_syn, num_spikes_syn_dev, Ncon*sizeof(int), cudaMemcpyDeviceToHost);
@@ -255,18 +255,18 @@ void init_neurs_from_file(){
 			int idx = W_P_BUND_SZ*bund + n;
 
 			// IV on limit cycle
-			V_ms[idx] = 32.9066f;
-			V_ms_last[idx] = 32.9065f;
-			n_chs[idx] = 0.574678f;
-			m_chs[idx] = 0.913177f;
-			h_chs[idx] = 0.223994f;
+//			V_ms[idx] = 32.9066f;
+//			V_ms_last[idx] = 32.9065f;
+//			n_chs[idx] = 0.574678f;
+//			m_chs[idx] = 0.913177f;
+//			h_chs[idx] = 0.223994f;
 
 			// IV at equilibrium state
-//			V_ms[idx] = -60.8457f;
-//			V_ms_last[idx] = -60.8450f;
-//			n_chs[idx] = 0.3763f;
-//			m_chs[idx] = 0.0833f;
-//			h_chs[idx] = 0.4636f;
+			V_ms[idx] = -60.8457f;
+			V_ms_last[idx] = -60.8450f;
+			n_chs[idx] = 0.3763f;
+			m_chs[idx] = 0.0833f;
+			h_chs[idx] = 0.4636f;
 
 //			unsigned int ivp_seed = seed + 1000 * n;
 //			V_ms[idx] = -75.4989f + (32.9031f + 75.4989f) * get_random(&ivp_seed);
