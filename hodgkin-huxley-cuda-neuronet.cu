@@ -25,6 +25,7 @@ float w_n = 5.4f;
 float rate = 200.0f;
 
 char f_name[500] = "0";
+char par_f_name[500] = "0";
 
 __device__ __host__ float get_random(unsigned int *seed){
 	// return random number homogeneously distributed in interval [0:1]
@@ -180,6 +181,7 @@ int main(int argc, char* argv[]){
 	init_neurs_from_file();
 	init_conns_from_file();
 	copy2device();
+//	clear_files();
 //	cudaError_t er;
 
 	init_poisson<<<dim3(Nneur/NEUR_BLOCK_SIZE + 1), dim3(NEUR_BLOCK_SIZE)>>>(psn_times_dev, psn_seeds_dev, seed, rate, h, Nneur, W_P_BUND_SZ);
@@ -200,9 +202,9 @@ int main(int argc, char* argv[]){
 
 		if ((t % T_sim_partial) == 0){
 			cout << t*h << endl;
-			cudaMemcpy(spike_times, spike_times_dev, Nneur*sizeof(int)*T_sim_partial/time_part_syn, cudaMemcpyDeviceToHost);
-			cudaMemcpy(num_spikes_neur, num_spikes_neur_dev, Nneur*sizeof(int), cudaMemcpyDeviceToHost);
-			cudaMemcpy(num_spikes_syn, num_spikes_syn_dev, Ncon*sizeof(int), cudaMemcpyDeviceToHost);
+			CUDA_CHECK_RETURN(cudaMemcpy(spike_times, spike_times_dev, Nneur*sizeof(int)*T_sim_partial/time_part_syn, cudaMemcpyDeviceToHost));
+			CUDA_CHECK_RETURN(cudaMemcpy(num_spikes_neur, num_spikes_neur_dev, Nneur*sizeof(int), cudaMemcpyDeviceToHost));
+			CUDA_CHECK_RETURN(cudaMemcpy(num_spikes_syn, num_spikes_syn_dev, Ncon*sizeof(int), cudaMemcpyDeviceToHost));
 			swap_spikes();
 			cudaMemcpy(spike_times_dev, spike_times, Nneur*sizeof(int)*T_sim_partial/time_part_syn, cudaMemcpyHostToDevice);
 			cudaMemcpy(num_spikes_neur_dev, num_spikes_neur, Nneur*sizeof(int), cudaMemcpyHostToDevice);
@@ -227,7 +229,7 @@ void init_conns_from_file(){
 	int Ncon_part;
 
 	ifstream con_file;
-	con_file.open("nn_params.csv");
+	con_file.open(par_f_name);
 	con_file >> Ncon_part;
 	Ncon = Ncon_part*W_P_NUM_BUND*NUM_BUND;
 //	cerr << "Number of connections: " << Ncon << endl;
@@ -255,18 +257,18 @@ void init_neurs_from_file(){
 			int idx = W_P_BUND_SZ*bund + n;
 
 			// IV on limit cycle
-//			V_ms[idx] = 32.9066f;
-//			V_ms_last[idx] = 32.9065f;
-//			n_chs[idx] = 0.574678f;
-//			m_chs[idx] = 0.913177f;
-//			h_chs[idx] = 0.223994f;
+			V_ms[idx] = 32.9066f;
+			V_ms_last[idx] = 32.9065f;
+			n_chs[idx] = 0.574678f;
+			m_chs[idx] = 0.913177f;
+			h_chs[idx] = 0.223994f;
 
 			// IV at equilibrium state
-			V_ms[idx] = -60.8457f;
-			V_ms_last[idx] = -60.8450f;
-			n_chs[idx] = 0.3763f;
-			m_chs[idx] = 0.0833f;
-			h_chs[idx] = 0.4636f;
+//			V_ms[idx] = -60.8457f;
+//			V_ms_last[idx] = -60.8450f;
+//			n_chs[idx] = 0.3763f;
+//			m_chs[idx] = 0.0833f;
+//			h_chs[idx] = 0.4636f;
 
 //			unsigned int ivp_seed = seed + 1000 * n;
 //			V_ms[idx] = -75.4989f + (32.9031f + 75.4989f) * get_random(&ivp_seed);
@@ -308,6 +310,15 @@ void swap_spikes(){
 			min_spike_nums_syn[pre_conns[s]] = num_spikes_syn[s];
 		}
 	}
+	// В случае если у нейрона не было никаких исходящих связей, то минимальное количество
+	// Спйков которые обрботли его исходящие синапсы будет равна INT_MAX, а это неверно
+	// Поэтома надо насильно поставить 0, для этого тут и эта конструкция
+	for (int n = 0; n < Nneur; n++){
+		if (min_spike_nums_syn[n] == INT_MAX){
+			min_spike_nums_syn[n] = 0;
+		}
+	}
+
 	int w_p_bund_idx, w_p_bund_neur, bund_idx, neur, idx;
 	for (int n = 0; n < Nneur; n++){
 		w_p_bund_idx = n/W_P_BUND_SZ;
@@ -318,7 +329,8 @@ void swap_spikes(){
 		for (int sp_n = 0; sp_n < min_spike_nums_syn[n]; sp_n++){
 			res_senders[W_P_NUM_BUND*NUM_BUND*num_spk_in_bund[idx] + idx] = neur;
 			res_times[W_P_NUM_BUND*NUM_BUND*num_spk_in_bund[idx] + idx] = spike_times[Nneur*sp_n + n]*h;
-			num_spk_in_bund[idx]++;		}
+			num_spk_in_bund[idx]++;
+		}
 
 		for (int sp_n = min_spike_nums_syn[n]; sp_n < num_spikes_neur[n]; sp_n++){
 			spike_times_temp[Nneur*(sp_n - min_spike_nums_syn[n]) + n] = spike_times[Nneur*sp_n + n];
@@ -343,7 +355,7 @@ void save2file(){
 		for (int j = 0; j < NUM_BUND; j++){
 			s << f_name << "/"<< j << "/w_p_" << w_p_start + (w_p_stop - w_p_start)*i/W_P_NUM_BUND << endl;
 			s >> name;
-			file = fopen(name, "a");
+			file = fopen(name, "w");
 			int idx = NUM_BUND*i + j;
 			for (int spk = 0; spk < num_spk_in_bund[idx]; spk++){
 				fprintf(file, "%.3f;%i\n", res_times[W_P_NUM_BUND*NUM_BUND*spk + idx], res_senders[W_P_NUM_BUND*NUM_BUND*spk + idx]);
@@ -398,7 +410,7 @@ void copy2device(){
 	size_t spike_times_sz = n_isize*T_sim_partial/time_part_syn;
 
 	// Allocating memory for array which contain var's for each neuron
-	cudaMalloc((void**) &V_ms_dev, n_fsize);
+	CUDA_CHECK_RETURN(cudaMalloc((void**) &V_ms_dev, n_fsize));
 	cudaMalloc((void**) &V_ms_last_dev, n_fsize);
 	cudaMalloc((void**) &m_chs_dev, n_fsize);
 	cudaMalloc((void**) &n_chs_dev, n_fsize);
@@ -458,7 +470,7 @@ void clear_files(){
 	stringstream s;
 	char* name = new char[500];
 	for (int i = 0; i < W_P_NUM_BUND; i++){
-		s << f_name << "w_p_" << w_p_start + (w_p_stop - w_p_start)*i/W_P_NUM_BUND << endl;
+		s << f_name << "/w_p_" << w_p_start + (w_p_stop - w_p_start)*i/W_P_NUM_BUND << endl;
 		s >> name;
 		files[i] = fopen(name, "w");
 		fclose(files[i]);
@@ -481,6 +493,7 @@ void init_params(int argc, char* argv[]){
 			case 9: str >> w_p_start; break;
 			case 10: str >> w_p_stop; break;
 			case 11: str >> w_n; break;
+			case 12: str >> par_f_name; break;
 		}
 	}
 	W_P_BUND_SZ = Nneur/W_P_NUM_BUND;
