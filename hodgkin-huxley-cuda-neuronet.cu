@@ -251,6 +251,13 @@ void init_conns_from_file(){
 }
 
 void init_neurs_from_file(){
+	unsigned int* param_distr_seeds = new unsigned int[Nneur]();
+	for (int i = 0; i < Nneur; i++){
+		int neur = i % BUND_SZ;
+		param_distr_seeds[i] = 100000*(neur + 1);
+		get_random(param_distr_seeds + i);
+//		get_random(&param_distr_seeds[i]);
+	}
 	malloc_neur_memory();
 	for (int bund = 0; bund < W_P_NUM_BUND; bund++){
 		for (int n = 0; n < W_P_BUND_SZ; n++){
@@ -277,7 +284,10 @@ void init_neurs_from_file(){
 //			m_chs[idx] = 0.0149f + (0.0149f - 0.9895f) * get_random(&ivp_seed);
 //			h_chs[idx] = 0.0669f + (0.0669f - 0.5121f) * get_random(&ivp_seed);
 
-			I_es[idx] = I_e;
+//			I_es[idx] = I_e;
+			float I_e_min = 5.22f;
+			float I_e_max = 5.30f;
+			I_es[idx] = I_e_min + (I_e_max-I_e_min)*get_random(param_distr_seeds + idx);
 			exp_w_p[idx] = (expf(1.0f)/tau_psc)*(w_p_start + (w_p_stop - w_p_start)*bund/W_P_NUM_BUND);
 		}
 	}
