@@ -1,0 +1,39 @@
+#!/bin/env bash
+
+# case 1: str >> SimulationTime; break;
+# case 2: str >> h; break;
+# case 3: str >> Nneur; break;
+# case 4: str >> W_P_NUM_BUND; break;
+# case 5: str >> BUND_SZ; break;
+# case 6: str >> f_name; break;
+# case 7: str >> seed; break;
+# case 8: str >> rate; break;
+# case 9: str >> w_p_start; break;
+# case 10: str >> w_p_stop; break;
+# case 11: str >> w_n; break;
+# case 12: str >> par_f_name; break;
+
+sim_time=5000.
+h=0.05
+rate=185.
+w_n=0.
+w_p1=2.0
+w_p2=5.4
+Nneur=2
+w_p_nbund=1
+seed_nbund=2
+seed=2
+
+par_fname=nn_params_$Nneur.csv
+let "Ntotal = Nneur*w_p_nbund*seed_nbund"
+echo "Total Neur Num: $Ntotal"
+fname=N\_$Nneur\_rate\_$rate\_w_n_$w_n
+mkdir $fname
+for j in `seq $seed $[$seed_nbund + $seed - 1]`;do
+    mkdir $fname/seed\_$j
+done
+
+r_str="./hodgkin-huxley-cuda-neuronet $sim_time $h $Ntotal $w_p_nbund $Nneur $fname $seed $rate $w_p1 $w_p2 $w_n $par_fname" 
+echo $r_str > $fname/params
+# $r_str 2> $fname/times
+$r_str 1> $seed"_oscill.csv"

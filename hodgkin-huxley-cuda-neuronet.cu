@@ -6,12 +6,13 @@
 #include <climits>
 #include <ctime>
 #include "hodgkin-huxley-cuda-neuronet.h"
+#include <cuda.h>
 
 unsigned int seed = 1;
 float h = 0.1f;
 float SimulationTime = 10000.0f; // in ms
 
-int Nneur = 20;
+int Nneur = 2;
 int W_P_NUM_BUND = 1; // number of different poisson weights
 int W_P_BUND_SZ = Nneur/W_P_NUM_BUND; // Number of neurons in bundle with same w_ps
 int BUND_SZ = 2;  // Number of neurons in a single realization
@@ -21,11 +22,12 @@ int NUM_BUND = W_P_BUND_SZ/BUND_SZ;
 float I_e = 5.27f;
 float w_p_start = 1.8f; // pA
 float w_p_stop = 2.0f;
+//float w_n = 5.4f;
 float w_n = 5.4f;
 float rate = 200.0f;
 
 char f_name[500] = "0";
-char par_f_name[500] = "0";
+char par_f_name[500] = "nn_params_2.csv";
 
 __device__ __host__ float get_random(unsigned int *seed){
 	// return random number homogeneously distributed in interval [0:1]
@@ -70,7 +72,7 @@ __global__ void init_poisson(int* psn_time, unsigned int *psn_seed, unsigned int
 	int n = blockIdx.x*blockDim.x + threadIdx.x;
 	int neur = n % BundleSize;
 	if (n < Nneur){
-		psn_seed[n] = seed + 100000*(neur + 1);
+		psn_seed[n] = 100000*(seed + neur + 1);
 		psn_time[n] = -(1000.0f/(h*rate))*logf(get_random(psn_seed + n));
 	}
 }
@@ -181,7 +183,6 @@ int main(int argc, char* argv[]){
 	init_neurs_from_file();
 	init_conns_from_file();
 	copy2device();
-//	clear_files();
 //	cudaError_t er;
 
 	init_poisson<<<dim3(Nneur/NEUR_BLOCK_SIZE + 1), dim3(NEUR_BLOCK_SIZE)>>>(psn_times_dev, psn_seeds_dev, seed, rate, h, Nneur, W_P_BUND_SZ);
@@ -251,13 +252,12 @@ void init_conns_from_file(){
 }
 
 void init_neurs_from_file(){
-	unsigned int* param_distr_seeds = new unsigned int[Nneur]();
-	for (int i = 0; i < Nneur; i++){
-		int neur = i % BUND_SZ;
-		param_distr_seeds[i] = 100000*(neur + 1);
-		get_random(param_distr_seeds + i);
-//		get_random(&param_distr_seeds[i]);
-	}
+//	unsigned int* param_distr_seeds = new unsigned int[Nneur]();
+//	for (int i = 0; i < Nneur; i++){
+//		int neur = i % BUND_SZ;
+//		param_distr_seeds[i] = 100000*(neur + 1);
+//		get_random(param_distr_seeds + i);
+//	}
 	malloc_neur_memory();
 	for (int bund = 0; bund < W_P_NUM_BUND; bund++){
 		for (int n = 0; n < W_P_BUND_SZ; n++){
@@ -284,10 +284,10 @@ void init_neurs_from_file(){
 //			m_chs[idx] = 0.0149f + (0.0149f - 0.9895f) * get_random(&ivp_seed);
 //			h_chs[idx] = 0.0669f + (0.0669f - 0.5121f) * get_random(&ivp_seed);
 
-//			I_es[idx] = I_e;
-			float I_e_min = 5.22f;
-			float I_e_max = 5.30f;
-			I_es[idx] = I_e_min + (I_e_max-I_e_min)*get_random(param_distr_seeds + idx);
+			I_es[idx] = I_e;
+//			float I_e_min = 5.22f;
+//			float I_e_max = 5.30f;
+//			I_es[idx] = I_e_min + (I_e_max-I_e_min)*get_random(param_distr_seeds + idx);
 			exp_w_p[idx] = (expf(1.0f)/tau_psc)*(w_p_start + (w_p_stop - w_p_start)*bund/W_P_NUM_BUND);
 		}
 	}
@@ -363,7 +363,8 @@ void save2file(){
 	char* name = new char[500];
 	for (int i = 0; i < W_P_NUM_BUND; i++){
 		for (int j = 0; j < NUM_BUND; j++){
-			s << f_name << "/"<< j << "/w_p_" << w_p_start + (w_p_stop - w_p_start)*i/W_P_NUM_BUND << endl;
+			s << f_name << "/" << "seed_" << j + seed
+					    << "/w_p_" << w_p_start + (w_p_stop - w_p_start)*i/W_P_NUM_BUND << endl;
 			s >> name;
 			file = fopen(name, "w");
 			int idx = NUM_BUND*i + j;
@@ -461,6 +462,7 @@ void copy2device(){
 	cudaMemcpy(I_psns_dev, I_psns, n_fsize, cudaMemcpyHostToDevice);
 	cudaMemcpy(y_psns_dev, y_psns, n_fsize, cudaMemcpyHostToDevice);
 
+
 	cudaMemcpy(I_last_dev, I_last, n_fsize, cudaMemcpyHostToDevice);
 
 	cudaMemcpy(exp_w_p_dev, exp_w_p, n_fsize, cudaMemcpyHostToDevice);
@@ -473,18 +475,6 @@ void copy2device(){
 	cudaMemcpy(post_conns_dev, post_conns, s_isize, cudaMemcpyHostToDevice);
 	cudaMemcpy(delays_dev, delays, s_isize, cudaMemcpyHostToDevice);
 	cudaMemcpy(num_spikes_syn_dev, num_spikes_syn, s_isize, cudaMemcpyHostToDevice);
-}
-
-void clear_files(){
-	FILE** files = new FILE*[W_P_NUM_BUND];
-	stringstream s;
-	char* name = new char[500];
-	for (int i = 0; i < W_P_NUM_BUND; i++){
-		s << f_name << "/w_p_" << w_p_start + (w_p_stop - w_p_start)*i/W_P_NUM_BUND << endl;
-		s >> name;
-		files[i] = fopen(name, "w");
-		fclose(files[i]);
-	}
 }
 
 void init_params(int argc, char* argv[]){

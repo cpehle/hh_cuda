@@ -2,7 +2,7 @@ import numpy as np
 import csv
 import matplotlib.pylab as pl
 
-f = open('oscill.csv', "r")
+f = open('0_oscill.csv', "r")
 rdr = csv.reader(f,delimiter=";")
 t = []
 V_m_1 = []
@@ -27,7 +27,7 @@ f.close()
 pl.figure()
 #ax0 = pl.subplot(211)
 #ax1 = pl.subplot(212, sharex=ax0)
-ax = pl.gca()
+ax0 = pl.gca()
 
 ax0.plot(t, V_m_1, label='1')
 ax0.plot(t, V_m_2, label='2')
@@ -41,4 +41,5 @@ ax0.set_xlabel("Time, ms")
 #ax1.plot(t, I_syn_1, '--',label='I_syn_1')
 #ax1.plot(t, I_syn_2, '--',label='I_syn_2')
 #ax1.legend()
-#pl.show()
+
+pl.show()
