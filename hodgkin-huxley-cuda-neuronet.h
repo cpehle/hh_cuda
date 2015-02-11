@@ -19,7 +19,7 @@
 	} }
 
 #define NEUR_BLOCK_SIZE 128
-#define SYN_BLOCK_SIZE 1000
+#define SYN_BLOCK_SIZE 512
 
 // neuron parameters
 __constant__ float Cm    = 1.0f; //  inverse of membrane capacity, 1/pF
@@ -129,9 +129,4 @@ void init_params(int, char*[]);
 
 void checkCudaError(cudaError_t status){
 	std::cout << cudaGetErrorString(status) << std::endl;
-	//	if(cudaStatus != cudaSuccess){
-//		cout << "error!" << endl;
-//	} else {
-//		cout << "success!" << endl;
-//	}
 }

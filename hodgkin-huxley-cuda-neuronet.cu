@@ -22,7 +22,6 @@ int NUM_BUND = W_P_BUND_SZ/BUND_SZ;
 float I_e = 5.27f;
 float w_p_start = 1.8f; // pA
 float w_p_stop = 2.0f;
-//float w_n = 5.4f;
 float w_n = 5.4f;
 float rate = 200.0f;
 
@@ -49,7 +48,7 @@ __device__ float hh_n_ch(float V, float n_ch, float h){
 		return (.01f*(1.0f - n_ch)*(V + 55.0f)/temp - 0.125*n_ch*expf(-(V + 65.0f)*0.0125f))*h;
 	} else {
 //		printf("Деление на ноль, n! \n");
-//      For understanding why what, calculate the limit for v/(1 - exp(v/10)) then v tend to 0
+//      to understand why it'so, calculate the limit for v/(1 - exp(v/10)) then v tend to 0
 		return (0.1f*(1.0f - n_ch)- 0.125*n_ch*expf(-(V + 65.0f)*0.0125f))*h;
 	}
 }
@@ -183,7 +182,6 @@ int main(int argc, char* argv[]){
 	init_neurs_from_file();
 	init_conns_from_file();
 	copy2device();
-//	cudaError_t er;
 
 	init_poisson<<<dim3(Nneur/NEUR_BLOCK_SIZE + 1), dim3(NEUR_BLOCK_SIZE)>>>(psn_times_dev, psn_seeds_dev, seed, rate, h, Nneur, W_P_BUND_SZ);
 	clock_t start = clock();
@@ -191,25 +189,22 @@ int main(int argc, char* argv[]){
     char* st = asctime(localtime(&curr_time));
 	cerr << "Start: " << st << endl;
     for (int t = 1; t < T_sim; t++){
-		integrate_neurons<<<dim3(Nneur/NEUR_BLOCK_SIZE + 1), dim3(NEUR_BLOCK_SIZE)>>>(V_ms_dev, V_ms_last_dev, n_chs_dev, m_chs_dev, h_chs_dev, spike_times_dev, num_spikes_neur_dev,
+		integrate_neurons<<<dim3((Nneur + NEUR_BLOCK_SIZE - 1)/NEUR_BLOCK_SIZE), dim3(NEUR_BLOCK_SIZE)>>>(V_ms_dev, V_ms_last_dev, n_chs_dev, m_chs_dev, h_chs_dev, spike_times_dev, num_spikes_neur_dev,
 				I_es_dev, ys_dev, I_syns_dev, y_psns_dev, I_psns_dev, psn_times_dev, psn_seeds_dev, I_last_dev, exp_w_p_dev, exp_psc, rate, Nneur, t, h);
 		cudaDeviceSynchronize();
-		integrate_synapses<<<dim3(Ncon/SYN_BLOCK_SIZE + 1), dim3(SYN_BLOCK_SIZE)>>>(ys_dev, weights_dev, delays_dev, pre_conns_dev, post_conns_dev,
+		integrate_synapses<<<dim3((Ncon + SYN_BLOCK_SIZE -1)/SYN_BLOCK_SIZE), dim3(SYN_BLOCK_SIZE)>>>(ys_dev, weights_dev, delays_dev, pre_conns_dev, post_conns_dev,
 				spike_times_dev, num_spikes_syn_dev, num_spikes_neur_dev, t, Nneur, Ncon);
 		cudaDeviceSynchronize();
-//		if(er != cudaSuccess){
-//			cerr << cudaGetErrorString(er) << endl;
-//		}
 
-		if ((t % T_sim_partial) == 0){
+		if ((t % (T_sim_partial)) == 0){
 			cout << t*h << endl;
 			CUDA_CHECK_RETURN(cudaMemcpy(spike_times, spike_times_dev, Nneur*sizeof(int)*T_sim_partial/time_part_syn, cudaMemcpyDeviceToHost));
 			CUDA_CHECK_RETURN(cudaMemcpy(num_spikes_neur, num_spikes_neur_dev, Nneur*sizeof(int), cudaMemcpyDeviceToHost));
 			CUDA_CHECK_RETURN(cudaMemcpy(num_spikes_syn, num_spikes_syn_dev, Ncon*sizeof(int), cudaMemcpyDeviceToHost));
 			swap_spikes();
-			cudaMemcpy(spike_times_dev, spike_times, Nneur*sizeof(int)*T_sim_partial/time_part_syn, cudaMemcpyHostToDevice);
-			cudaMemcpy(num_spikes_neur_dev, num_spikes_neur, Nneur*sizeof(int), cudaMemcpyHostToDevice);
-			cudaMemcpy(num_spikes_syn_dev, num_spikes_syn, Ncon*sizeof(int), cudaMemcpyHostToDevice);
+			CUDA_CHECK_RETURN(cudaMemcpy(spike_times_dev, spike_times, Nneur*sizeof(int)*T_sim_partial/time_part_syn, cudaMemcpyHostToDevice));
+			CUDA_CHECK_RETURN(cudaMemcpy(num_spikes_neur_dev, num_spikes_neur, Nneur*sizeof(int), cudaMemcpyHostToDevice));
+			CUDA_CHECK_RETURN(cudaMemcpy(num_spikes_syn_dev, num_spikes_syn, Ncon*sizeof(int), cudaMemcpyHostToDevice));
 		}
 	}
 	cudaDeviceSynchronize();
@@ -219,8 +214,6 @@ int main(int argc, char* argv[]){
 	cerr << "Stop: " << asctime(localtime(&curr_time)) << endl;
 	cerr << "Finished!" << endl;
 
-//	float s_time = ((float) clock() - (float) start)*1000./CLOCKS_PER_SEC;
-//	cerr << "Elapsed time: " << s_time << " ms" << endl;
 	save2HOST();
 	save2file();
 	return 0;
@@ -277,13 +270,6 @@ void init_neurs_from_file(){
 //			m_chs[idx] = 0.0833f;
 //			h_chs[idx] = 0.4636f;
 
-//			unsigned int ivp_seed = seed + 1000 * n;
-//			V_ms[idx] = -75.4989f + (32.9031f + 75.4989f) * get_random(&ivp_seed);
-//			V_ms_last[idx] = V_ms[idx] - 0.001f;
-//			n_chs[idx] = 0.3593f + (0.7574f - 0.3593f) * get_random(&ivp_seed);
-//			m_chs[idx] = 0.0149f + (0.0149f - 0.9895f) * get_random(&ivp_seed);
-//			h_chs[idx] = 0.0669f + (0.0669f - 0.5121f) * get_random(&ivp_seed);
-
 			I_es[idx] = I_e;
 //			float I_e_min = 5.22f;
 //			float I_e_max = 5.30f;
@@ -332,9 +318,9 @@ void swap_spikes(){
 	int w_p_bund_idx, w_p_bund_neur, bund_idx, neur, idx;
 	for (int n = 0; n < Nneur; n++){
 		w_p_bund_idx = n/W_P_BUND_SZ;
-		w_p_bund_neur = n - W_P_BUND_SZ*w_p_bund_idx;
+		w_p_bund_neur = n % W_P_BUND_SZ;
 		bund_idx = w_p_bund_neur/BUND_SZ;
-		neur = w_p_bund_neur - BUND_SZ*bund_idx;
+		neur = w_p_bund_neur % BUND_SZ;
 		idx = NUM_BUND*w_p_bund_idx + bund_idx;
 		for (int sp_n = 0; sp_n < min_spike_nums_syn[n]; sp_n++){
 			res_senders[W_P_NUM_BUND*NUM_BUND*num_spk_in_bund[idx] + idx] = neur;
@@ -449,7 +435,7 @@ void copy2device(){
 	cudaMalloc((void**) &delays_dev, s_isize);
 	cudaMalloc((void**) &num_spikes_syn_dev, s_isize);
 
-	// Copyng to GPU device memory neuron arrays
+	// Copying to GPU device memory neuron arrays
 	cudaMemcpy(V_ms_dev, V_ms, n_fsize, cudaMemcpyHostToDevice);
 	cudaMemcpy(V_ms_last_dev, V_ms_last, n_fsize, cudaMemcpyHostToDevice);
 	cudaMemcpy(m_chs_dev, m_chs, n_fsize, cudaMemcpyHostToDevice);
