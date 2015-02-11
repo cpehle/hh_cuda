@@ -39,6 +39,11 @@ int time_part_syn;
 // so the maximum number of spikes per neuron which can be processed is
 // T_sim_particular/time_part_syn
 
+// interval of saving results to file,
+// if greater then fragmentation becomes less,
+// but more RAM is used
+int SaveIntervalTIdx = 100000;
+
 float tau_psc = 0.2f;
 float exp_psc;
 
@@ -113,7 +118,7 @@ void save2HOST();
 
 void swap_spikes();
 
-void save2file();
+void clearResFiles();
 
 void malloc_neur_memory();
 
@@ -127,6 +132,4 @@ void clear_files();
 
 void init_params(int, char*[]);
 
-void checkCudaError(cudaError_t status){
-	std::cout << cudaGetErrorString(status) << std::endl;
-}
+void apndResToFile();

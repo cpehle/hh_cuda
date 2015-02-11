@@ -182,6 +182,7 @@ int main(int argc, char* argv[]){
 	init_neurs_from_file();
 	init_conns_from_file();
 	copy2device();
+	clearResFiles();
 
 	init_poisson<<<dim3(Nneur/NEUR_BLOCK_SIZE + 1), dim3(NEUR_BLOCK_SIZE)>>>(psn_times_dev, psn_seeds_dev, seed, rate, h, Nneur, W_P_BUND_SZ);
 	clock_t start = clock();
@@ -196,7 +197,7 @@ int main(int argc, char* argv[]){
 				spike_times_dev, num_spikes_syn_dev, num_spikes_neur_dev, t, Nneur, Ncon);
 		cudaDeviceSynchronize();
 
-		if ((t % (T_sim_partial)) == 0){
+		if ((t % T_sim_partial) == 0){
 			cout << t*h << endl;
 			CUDA_CHECK_RETURN(cudaMemcpy(spike_times, spike_times_dev, Nneur*sizeof(int)*T_sim_partial/time_part_syn, cudaMemcpyDeviceToHost));
 			CUDA_CHECK_RETURN(cudaMemcpy(num_spikes_neur, num_spikes_neur_dev, Nneur*sizeof(int), cudaMemcpyDeviceToHost));
@@ -205,6 +206,10 @@ int main(int argc, char* argv[]){
 			CUDA_CHECK_RETURN(cudaMemcpy(spike_times_dev, spike_times, Nneur*sizeof(int)*T_sim_partial/time_part_syn, cudaMemcpyHostToDevice));
 			CUDA_CHECK_RETURN(cudaMemcpy(num_spikes_neur_dev, num_spikes_neur, Nneur*sizeof(int), cudaMemcpyHostToDevice));
 			CUDA_CHECK_RETURN(cudaMemcpy(num_spikes_syn_dev, num_spikes_syn, Ncon*sizeof(int), cudaMemcpyHostToDevice));
+			if ( t % SaveIntervalTIdx == 0){
+				cout << "Results saved to file!" << endl;
+				apndResToFile();
+			}
 		}
 	}
 	cudaDeviceSynchronize();
@@ -215,7 +220,8 @@ int main(int argc, char* argv[]){
 	cerr << "Finished!" << endl;
 
 	save2HOST();
-	save2file();
+//	save2file();
+	apndResToFile();
 	return 0;
 }
 
@@ -283,9 +289,9 @@ void save2HOST(){
 	int w_p_bund_idx, w_p_bund_neur, bund_idx, idx, neur;
 	for (int n = 0; n < Nneur; n++){
 		w_p_bund_idx = n/W_P_BUND_SZ;
-		w_p_bund_neur = n - W_P_BUND_SZ*w_p_bund_idx;
+		w_p_bund_neur = n % W_P_BUND_SZ;
 		bund_idx = w_p_bund_neur/BUND_SZ;
-		neur = w_p_bund_neur - BUND_SZ*bund_idx;
+		neur = w_p_bund_neur % BUND_SZ;
 		idx = NUM_BUND*w_p_bund_idx + bund_idx;
 		for (int sp_n = 0; sp_n < num_spikes_neur[n]; sp_n++){
 			res_senders[W_P_NUM_BUND*NUM_BUND*num_spk_in_bund[idx] + idx] = neur;
@@ -335,7 +341,7 @@ void swap_spikes(){
 	}
 
 	for (int s = 0; s < Ncon; s++){
-		num_spikes_syn[s] = num_spikes_syn[s] - min_spike_nums_syn[pre_conns[s]];
+		num_spikes_syn[s] -= min_spike_nums_syn[pre_conns[s]];
 	}
 
 	free(spike_times);
@@ -343,7 +349,7 @@ void swap_spikes(){
 	spike_times = spike_times_temp;
 }
 
-void save2file(){
+void clearResFiles(){
 	FILE* file;
 	stringstream s;
 	char* name = new char[500];
@@ -353,14 +359,30 @@ void save2file(){
 					    << "/w_p_" << w_p_start + (w_p_stop - w_p_start)*i/W_P_NUM_BUND << endl;
 			s >> name;
 			file = fopen(name, "w");
-			int idx = NUM_BUND*i + j;
-			for (int spk = 0; spk < num_spk_in_bund[idx]; spk++){
-				fprintf(file, "%.3f;%i\n", res_times[W_P_NUM_BUND*NUM_BUND*spk + idx], res_senders[W_P_NUM_BUND*NUM_BUND*spk + idx]);
-			}
 			fclose(file);
 		}
 	}
 
+}
+
+void apndResToFile(){
+	FILE* file;
+	stringstream s;
+	char* name = new char[500];
+	for (int i = 0; i < W_P_NUM_BUND; i++){
+		for (int j = 0; j < NUM_BUND; j++){
+			s << f_name << "/" << "seed_" << j + seed
+					    << "/w_p_" << w_p_start + (w_p_stop - w_p_start)*i/W_P_NUM_BUND << endl;
+			s >> name;
+			file = fopen(name, "a+");
+			int idx = NUM_BUND*i + j;
+			for (int spk = 0; spk < num_spk_in_bund[idx]; spk++){
+				fprintf(file, "%.3f;%i\n", res_times[W_P_NUM_BUND*NUM_BUND*spk + idx], res_senders[W_P_NUM_BUND*NUM_BUND*spk + idx]);
+			}
+			num_spk_in_bund[idx] = 0;
+			fclose(file);
+		}
+	}
 }
 
 void malloc_neur_memory(){
