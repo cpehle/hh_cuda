@@ -42,7 +42,7 @@ int time_part_syn;
 // interval of saving results to file,
 // if greater then fragmentation becomes less,
 // but more RAM is used
-int SaveIntervalTIdx = 100000;
+int SaveIntervalTIdx = 1000000;
 
 float tau_psc = 0.2f;
 float exp_psc;

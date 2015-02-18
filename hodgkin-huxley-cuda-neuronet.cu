@@ -207,8 +207,8 @@ int main(int argc, char* argv[]){
 			CUDA_CHECK_RETURN(cudaMemcpy(num_spikes_neur_dev, num_spikes_neur, Nneur*sizeof(int), cudaMemcpyHostToDevice));
 			CUDA_CHECK_RETURN(cudaMemcpy(num_spikes_syn_dev, num_spikes_syn, Ncon*sizeof(int), cudaMemcpyHostToDevice));
 			if ( t % SaveIntervalTIdx == 0){
-				cout << "Results saved to file!" << endl;
 				apndResToFile();
+				cout << "Results saved to file!" << endl;
 			}
 		}
 	}
@@ -352,11 +352,12 @@ void swap_spikes(){
 void clearResFiles(){
 	FILE* file;
 	stringstream s;
+	s.precision(2);
 	char* name = new char[500];
 	for (int i = 0; i < W_P_NUM_BUND; i++){
 		for (int j = 0; j < NUM_BUND; j++){
 			s << f_name << "/" << "seed_" << j + seed
-					    << "/w_p_" << w_p_start + (w_p_stop - w_p_start)*i/W_P_NUM_BUND << endl;
+					    << "/w_p_" << fixed << w_p_start + (w_p_stop - w_p_start)*i/W_P_NUM_BUND << endl;
 			s >> name;
 			file = fopen(name, "w");
 			fclose(file);
@@ -368,11 +369,12 @@ void clearResFiles(){
 void apndResToFile(){
 	FILE* file;
 	stringstream s;
+	s.precision(2);
 	char* name = new char[500];
 	for (int i = 0; i < W_P_NUM_BUND; i++){
 		for (int j = 0; j < NUM_BUND; j++){
 			s << f_name << "/" << "seed_" << j + seed
-					    << "/w_p_" << w_p_start + (w_p_stop - w_p_start)*i/W_P_NUM_BUND << endl;
+					    << "/w_p_" << fixed << w_p_start + (w_p_stop - w_p_start)*i/W_P_NUM_BUND << endl;
 			s >> name;
 			file = fopen(name, "a+");
 			int idx = NUM_BUND*i + j;
@@ -407,7 +409,8 @@ void malloc_neur_memory(){
 	// spike_times[Nneur*num + n] = t
 	spike_times = new int[Nneur*T_sim_partial/time_part_syn]();
 	num_spikes_neur = new int[Nneur]();
-	int expected_spk_num = BUND_SZ*SimulationTime/5.0f;
+	int expected_spk_num = BUND_SZ*SaveIntervalTIdx/time_part_syn;
+
 	res_times = new float[W_P_NUM_BUND*NUM_BUND*expected_spk_num];
 	res_senders = new int[W_P_NUM_BUND*NUM_BUND*expected_spk_num];
 	num_spk_in_bund = new int[W_P_NUM_BUND*NUM_BUND]();

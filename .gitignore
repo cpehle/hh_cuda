@@ -3,3 +3,4 @@
 .*
 */
 !.gitignore
+hodgkin-huxley-cuda-neuronet
