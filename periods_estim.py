@@ -12,27 +12,38 @@ import matplotlib.pylab as pl
 import numpy as np
 from transition_analys import analys_trans
 
-maxSr = 12
-srHstBins = 10
-timeBin = 20.3*5/1000. # in sec
+# maxSr = 12
+# srHstBins = 10
+# timeBin = 20.3*5/1000. # in sec
+# varParam = np.arange(0.4, 0.55, 0.01) 
 
-noiseStd = np.arange(0.4, 0.55, 0.01) 
+# path = 'res/awsr_std_{0}.npy'
 
-path = 'res/awsr_std_{0}.npy'
+maxSr = 100
+srHstBins = 100
+timeBin = 20.3/1000. # in sec
+varParam = np.linspace(2.0, 2.13, 7)
 
-MeanPeriods = np.zeros(np.shape(noiseStd))
-MeanTimesUp = np.zeros(np.shape(noiseStd))
-MeanTimesDown = np.zeros(np.shape(noiseStd))
-StdPeriods = np.zeros(np.shape(noiseStd))
-StdTimesUp = np.zeros(np.shape(noiseStd))
-StdTimesDown = np.zeros(np.shape(noiseStd))
-TupRatio = np.zeros(np.shape(noiseStd))
-for idx, std in enumerate(noiseStd):
+rate = 180.0
+N = 100
+w_n = 1.3
+path = 'N_{0}_rate_{1}_w_n_{2}__/'.format(N, rate, w_n)
+
+MeanPeriods = np.zeros(np.shape(varParam))
+MeanTimesUp = np.zeros(np.shape(varParam))
+MeanTimesDown = np.zeros(np.shape(varParam))
+StdPeriods = np.zeros(np.shape(varParam))
+StdTimesUp = np.zeros(np.shape(varParam))
+StdTimesDown = np.zeros(np.shape(varParam))
+TupRatio = np.zeros(np.shape(varParam))
+for idx, var in enumerate(varParam):
     Periods = []
     TimesUp = []
     TimesDown = []
-    for seed in range(0, 1):
-        period, time_down, time_up = analys_trans(path.format(std), maxSr=maxSr, srHstBins=srHstBins)
+    for seed in range(1):
+#         period, time_down, time_up = analys_trans(path.format(var), maxSr=maxSr, srHstBins=srHstBins)
+        period, time_down, time_up = analys_trans(path+"seed_{0}/awsr_w_p_{1:.2f}.npy".format(seed, var), 
+                                                  maxSr=maxSr, srHstBins=srHstBins)
         Periods.extend(period)
         TimesDown.extend(time_down)
         TimesUp.extend(time_up)
@@ -45,23 +56,23 @@ for idx, std in enumerate(noiseStd):
     TupRatio[idx] = np.sum(TimesUp)/np.sum(Periods)
  
 pl.figure(1)
-pl.plot(noiseStd, MeanPeriods*timeBin, 'b', label="Mean Periods")
-pl.plot(noiseStd, StdPeriods*timeBin, 'r', label="Std Periods")
+pl.plot(varParam, MeanPeriods*timeBin, 'b', label="Mean Periods")
+pl.plot(varParam, StdPeriods*timeBin, 'r', label="Std Periods")
 pl.xlabel("Noise Power, pA")
 pl.legend()
 pl.figure(2)
-pl.plot(noiseStd, MeanTimesUp*timeBin, 'b', label="Mean TimeUp")
-pl.plot(noiseStd, StdTimesUp*timeBin, 'r', label="Std TimeUp")
+pl.plot(varParam, MeanTimesUp*timeBin, 'b', label="Mean TimeUp")
+pl.plot(varParam, StdTimesUp*timeBin, 'r', label="Std TimeUp")
 pl.xlabel("Noise Power, pA")
 pl.legend()
 pl.figure(3)
-pl.plot(noiseStd, MeanTimesDown*timeBin, 'b', label="Mean TimeDown")
-pl.plot(noiseStd, StdTimesDown*timeBin, 'r', label="Std TimeDown")
+pl.plot(varParam, MeanTimesDown*timeBin, 'b', label="Mean TimeDown")
+pl.plot(varParam, StdTimesDown*timeBin, 'r', label="Std TimeDown")
 pl.xlabel("Noise Power, pA")
 pl.legend()
  
 pl.figure(4)
-pl.plot(noiseStd, TupRatio, label="Tup/Tsum")
+pl.plot(varParam, TupRatio, label="Tup/Tsum")
 pl.xlabel("Noise Power, pA")
 pl.legend()
  

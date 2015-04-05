@@ -10,16 +10,18 @@ import matplotlib.pylab as pl
 
 def analys_trans(fname, maxSr=15, srHstBins=10):
     srHstBinSize = maxSr/srHstBins
-    
+
     (time, sr) = np.load(fname)
-    sr = gs_filter(sr, 1)
-    
+    sr = gs_filter(sr, 10)
+
     srHst = np.histogram(sr, bins=srHstBins, range=(0, maxSr))[0]
 
     srMidpntIdx = len(srHst)/2
     firstMaxIdx = np.argmax(srHst[:srMidpntIdx])
     secondMaxIdx = srMidpntIdx + np.argmax(srHst[srMidpntIdx:])
     srMidpnt = np.argmin(srHst[firstMaxIdx:secondMaxIdx])*srHstBinSize
+#     srMidpnt = (firstMaxIdx + secondMaxIdx)/2
+#    print(srMidpnt)
 
     thr = np.array(sr >= srMidpnt, dtype='int32')
     df = np.diff(thr)

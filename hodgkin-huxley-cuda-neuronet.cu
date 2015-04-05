@@ -181,6 +181,7 @@ int main(int argc, char* argv[]){
 	T_sim = SimulationTime/h;
 	init_neurs_from_file();
 	init_conns_from_file();
+	cudaSetDevice(0);
 	copy2device();
 	clearResFiles();
 
@@ -280,7 +281,7 @@ void init_neurs_from_file(){
 //			float I_e_min = 5.22f;
 //			float I_e_max = 5.30f;
 //			I_es[idx] = I_e_min + (I_e_max-I_e_min)*get_random(param_distr_seeds + idx);
-			exp_w_p[idx] = (expf(1.0f)/tau_psc)*(w_p_start + (w_p_stop - w_p_start)*bund/W_P_NUM_BUND);
+			exp_w_p[idx] = (expf(1.0f)/tau_psc)*(w_p_start + ((w_p_stop - w_p_start)/W_P_NUM_BUND)*bund);
 		}
 	}
 }
@@ -344,8 +345,8 @@ void swap_spikes(){
 		num_spikes_syn[s] -= min_spike_nums_syn[pre_conns[s]];
 	}
 
-	free(spike_times);
-	free(min_spike_nums_syn);
+	delete[] spike_times;
+	delete[] min_spike_nums_syn;
 	spike_times = spike_times_temp;
 }
 

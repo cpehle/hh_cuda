@@ -17,9 +17,10 @@ seed=0
 path = 'N_{0}_rate_{1}_w_n_1.3/seed_{2}'.format(N, rate, seed)
 # path = 'res'
 
-varParam = np.arange(2.01, 2.111, 0.02)
+varParam = np.linspace(2.0, 2.14, 15, endpoint=True)
+#varParam = np.linspace(2.0, 2.13, 7, endpoint=True)
 
-fig = pl.figure(figsize=(12, 9))
+fig = pl.figure("rastrs", figsize=(12, 9))
 #fig = pl.figure(figsize=(24, 18))
 matplotlib.rc('lines', linewidth=.75)
 matplotlib.rc('font', size=16.)
@@ -27,11 +28,11 @@ matplotlib.rc('font', size=16.)
 gs = GridSpec(len(varParam), 2, width_ratios = [1, 4])
 
 for idx, param in enumerate(varParam):
-    (time, awsr) = np.load(path + '/awsr_w_p_' + str(param) + '.npy')
+    (time, awsr) = np.load(path + '/awsr_w_p_{0:.2f}'.format(param) + '.npy')
 #     (time, awsr) = np.load(path + '/awsr_std_' + str(param) + '.npy')
     awsr = gs_filter(awsr, 5)
     time /= 1000.
-    
+
     ax = pl.subplot(gs[idx, 1])
     ax.plot(time, awsr, color = 'k')
     ax.set_xticks([])
