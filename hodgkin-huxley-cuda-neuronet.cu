@@ -506,6 +506,7 @@ void init_params(int argc, char* argv[]){
 			case 10: str >> w_p_stop; break;
 			case 11: str >> w_n; break;
 			case 12: str >> par_f_name; break;
+			case 13: str >> I_e; break;
 		}
 	}
 	W_P_BUND_SZ = Nneur/W_P_NUM_BUND;

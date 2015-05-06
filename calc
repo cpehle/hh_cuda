@@ -13,7 +13,7 @@
 # case 11: str >> w_n; break;
 # case 12: str >> par_f_name; break;
 
-sim_time=200000.
+sim_time=2000
 Nneur=100
 h=0.1
 rate=180.0
@@ -23,6 +23,7 @@ w_p2=2.15
 w_p_nbund=15
 seed_nbund=1
 seed=0
+Ie=5.2
 
 # params for 2 neurs
 # Nneur=2
@@ -39,13 +40,13 @@ seed=0
 par_fname=nn_params_$Nneur.csv
 let "Ntotal = Nneur*w_p_nbund*seed_nbund"
 echo "Total Neur Num: $Ntotal"
-fname=N\_$Nneur\_rate\_$rate\_w_n_$w_n
+fname=N\_$Nneur\_rate\_$rate\_w_n_$w_n\__
 mkdir $fname
 for j in `seq $seed $[$seed_nbund + $seed - 1]`;do
     mkdir $fname/seed\_$j
 done
 
-r_str="./hodgkin-huxley-cuda-neuronet $sim_time $h $Ntotal $w_p_nbund $Nneur $fname $seed $rate $w_p1 $w_p2 $w_n $par_fname" 
+r_str="./hh-cuda-44d84f3 $sim_time $h $Ntotal $w_p_nbund $Nneur $fname $seed $rate $w_p1 $w_p2 $w_n $par_fname $Ie" 
 echo $r_str > $fname/params
 $r_str 2> $fname/times
 # $r_str 1> $seed"_oscill.csv"

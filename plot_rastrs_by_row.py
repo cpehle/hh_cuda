@@ -17,8 +17,8 @@ seed=0
 path = 'N_{0}_rate_{1}_w_n_1.3/seed_{2}'.format(N, rate, seed)
 # path = 'res'
 
-varParam = np.linspace(2.0, 2.14, 15, endpoint=True)
-#varParam = np.linspace(2.0, 2.13, 7, endpoint=True)
+#varParam = np.linspace(2.0, 2.14, 15, endpoint=True)
+varParam = np.linspace(2.0, 2.13, 7, endpoint=True)
 
 fig = pl.figure("rastrs", figsize=(12, 9))
 #fig = pl.figure(figsize=(24, 18))

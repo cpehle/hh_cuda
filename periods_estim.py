@@ -15,7 +15,7 @@ from transition_analys import analys_trans
 # maxSr = 12
 # srHstBins = 10
 # timeBin = 20.3*5/1000. # in sec
-# varParam = np.arange(0.4, 0.55, 0.01) 
+# varParam = np.arange(0.4, 0.55, 0.01)
 
 # path = 'res/awsr_std_{0}.npy'
 
@@ -27,7 +27,7 @@ varParam = np.linspace(2.0, 2.13, 7)
 rate = 180.0
 N = 100
 w_n = 1.3
-path = 'N_{0}_rate_{1}_w_n_{2}__/'.format(N, rate, w_n)
+path = 'N_{0}_rate_{1}_w_n_{2}/'.format(N, rate, w_n)
 
 MeanPeriods = np.zeros(np.shape(varParam))
 MeanTimesUp = np.zeros(np.shape(varParam))
@@ -42,7 +42,7 @@ for idx, var in enumerate(varParam):
     TimesDown = []
     for seed in range(1):
 #         period, time_down, time_up = analys_trans(path.format(var), maxSr=maxSr, srHstBins=srHstBins)
-        period, time_down, time_up = analys_trans(path+"seed_{0}/awsr_w_p_{1:.2f}.npy".format(seed, var), 
+        period, time_down, time_up = analys_trans(path+"seed_{0}/awsr_w_p_{1:.2f}.npy".format(seed, var),
                                                   maxSr=maxSr, srHstBins=srHstBins)
         Periods.extend(period)
         TimesDown.extend(time_down)
@@ -54,7 +54,7 @@ for idx, var in enumerate(varParam):
     StdTimesUp[idx] = np.std(TimesUp)
     StdTimesDown[idx] = np.std(TimesDown)
     TupRatio[idx] = np.sum(TimesUp)/np.sum(Periods)
- 
+
 pl.figure(1)
 pl.plot(varParam, MeanPeriods*timeBin, 'b', label="Mean Periods")
 pl.plot(varParam, StdPeriods*timeBin, 'r', label="Std Periods")
@@ -70,11 +70,11 @@ pl.plot(varParam, MeanTimesDown*timeBin, 'b', label="Mean TimeDown")
 pl.plot(varParam, StdTimesDown*timeBin, 'r', label="Std TimeDown")
 pl.xlabel("Noise Power, pA")
 pl.legend()
- 
+
 pl.figure(4)
 pl.plot(varParam, TupRatio, label="Tup/Tsum")
 pl.xlabel("Noise Power, pA")
 pl.legend()
- 
+
 pl.show()
 

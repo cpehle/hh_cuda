@@ -5,4 +5,4 @@
 .*
 */
 !.gitignore
-hodgkin-huxley-cuda-neuronet
+hh-cuda-*
