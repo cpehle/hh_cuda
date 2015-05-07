@@ -11,14 +11,15 @@ import matplotlib.pyplot as pl
 from matplotlib.gridspec import GridSpec
 from scipy.ndimage.filters import gaussian_filter as gs_filter
 
-rate = 180.0
-N=100
+rate = 185.0
+N=2
 seed=0
-path = 'N_{0}_rate_{1}_w_n_1.3/seed_{2}'.format(N, rate, seed)
+path = 'N_{N}_rate_{rate}_w_n_{w_n}/seed_{seed}'.format(N=N, rate=rate, seed=seed, w_n=w_n)
+
 # path = 'res'
 
-#varParam = np.linspace(2.0, 2.14, 15, endpoint=True)
-varParam = np.linspace(2.0, 2.13, 7, endpoint=True)
+varParam = np.linspace(1.2, 2.2, 10, endpoint=False)
+#varParam = np.linspace(2.0, 2.13, 7, endpoint=True)
 
 fig = pl.figure("rastrs", figsize=(12, 9))
 #fig = pl.figure(figsize=(24, 18))
