@@ -1,4 +1,3 @@
-*.csv_
 *.csv
 *.pyc
 *.npy
@@ -6,3 +5,5 @@
 */
 !.gitignore
 hh-cuda-*
+!nn_params_2.csv
+!nn_params_100.csv

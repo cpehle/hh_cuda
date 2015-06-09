@@ -15,10 +15,11 @@ if len(sys.argv) > 1:
 rate = 185.0
 N = 2
 w_n = 5.4
-path = 'N_{0}_rate_{1}_w_n_{2}/seed_{3}'.format(N, rate, w_n, seed)
+Ie=5.
+path = 'N_{0}_rate_{1}_w_n_{2}_Ie_{3}/seed_{4}'.format(N, rate, w_n, Ie, seed)
 
 BinSize = 20.3
-w_ps = np.linspace(1.2, 2.2, 10, endpoint=False)
+w_ps = np.linspace(1.2, 4.2, 30, endpoint=False)
 #w_ps = np.arange(2.0, 2.15, 0.01)
 
 # w_ps = np.linspace(1.0, 2.0, 15, endpoint=False)
@@ -27,9 +28,9 @@ for idx, w_p in enumerate(w_ps):
     times = []
     print w_p
     f = open('{0}/w_p_{1:.2f}'.format(path, w_p), "r")
-    rdr = csv.reader(f,delimiter=";")
+    rdr = csv.reader(f,delimiter="\t")
     for l in rdr:
-        times.append(l[0])
+        times.append(l[1])
     f.close()
     times = np.array(times, dtype="float32")
     Tmax = np.max(times)

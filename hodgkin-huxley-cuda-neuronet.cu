@@ -221,7 +221,6 @@ int main(int argc, char* argv[]){
 	cerr << "Finished!" << endl;
 
 	save2HOST();
-//	save2file();
 	apndResToFile();
 	return 0;
 }
@@ -380,7 +379,7 @@ void apndResToFile(){
 			file = fopen(name, "a+");
 			int idx = NUM_BUND*i + j;
 			for (int spk = 0; spk < num_spk_in_bund[idx]; spk++){
-				fprintf(file, "%.3f;%i\n", res_times[W_P_NUM_BUND*NUM_BUND*spk + idx], res_senders[W_P_NUM_BUND*NUM_BUND*spk + idx]);
+				fprintf(file, "%i\t%.3f\n", res_senders[W_P_NUM_BUND*NUM_BUND*spk + idx], res_times[W_P_NUM_BUND*NUM_BUND*spk + idx]);
 			}
 			num_spk_in_bund[idx] = 0;
 			fclose(file);

@@ -14,11 +14,13 @@ from scipy.ndimage.filters import gaussian_filter as gs_filter
 rate = 185.0
 N=2
 seed=0
-path = 'N_{N}_rate_{rate}_w_n_{w_n}/seed_{seed}'.format(N=N, rate=rate, seed=seed, w_n=w_n)
+Ie=5.0
+w_n=5.4
+path = 'N_{N}_rate_{rate}_w_n_{w_n}_Ie_{Ie}/seed_{seed}'.format(N=N, rate=rate, Ie=Ie, seed=seed, w_n=w_n)
 
 # path = 'res'
 
-varParam = np.linspace(1.2, 2.2, 10, endpoint=False)
+varParam = np.linspace(1.2, 4.2, 10, endpoint=False)
 #varParam = np.linspace(2.0, 2.13, 7, endpoint=True)
 
 fig = pl.figure("rastrs", figsize=(12, 9))
