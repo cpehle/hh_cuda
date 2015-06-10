@@ -27,16 +27,16 @@
 
 # params for 2 neurs
 Nneur=2
-sim_time=1000000.
+sim_time=100000.
 h=0.1
 rate=185.0
 w_n=5.4
-w_p1=1.2
-w_p2=4.2
+w_p1=1.4
+w_p2=4.4
 w_p_nbund=30
 seed_nbund=5
 seed=0
-Ie=5.0
+Ie=5.4
 
 par_fname=nn_params_$Nneur.csv
 let "Ntotal = Nneur*w_p_nbund*seed_nbund"

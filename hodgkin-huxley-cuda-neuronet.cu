@@ -276,7 +276,7 @@ void init_neurs_from_file(){
 //			m_chs[idx] = 0.0833f;
 //			h_chs[idx] = 0.4636f;
 
-			I_es[idx] = I_e;
+			I_es[idx] = I_e - tau_psc*2.71828*rate/1000*(w_p_start + ((w_p_stop - w_p_start)/W_P_NUM_BUND)*bund);
 //			float I_e_min = 5.22f;
 //			float I_e_max = 5.30f;
 //			I_es[idx] = I_e_min + (I_e_max-I_e_min)*get_random(param_distr_seeds + idx);

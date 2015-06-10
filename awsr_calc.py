@@ -15,11 +15,11 @@ if len(sys.argv) > 1:
 rate = 185.0
 N = 2
 w_n = 5.4
-Ie=5.
+Ie=5.4
 path = 'N_{0}_rate_{1}_w_n_{2}_Ie_{3}/seed_{4}'.format(N, rate, w_n, Ie, seed)
 
 BinSize = 20.3
-w_ps = np.linspace(1.2, 4.2, 30, endpoint=False)
+w_ps = np.arange(1.4, 4.2, 0.1)
 #w_ps = np.arange(2.0, 2.15, 0.01)
 
 # w_ps = np.linspace(1.0, 2.0, 15, endpoint=False)

@@ -1,7 +1,7 @@
 '''
 Created on 11.12.2013
 
-@author: postdoc3
+@author: Pavel Esir
 '''
 
 import csv
