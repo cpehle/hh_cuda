@@ -8,6 +8,7 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
+#include <curand_kernel.h>
 #include <iostream>
 
 #define CUDA_CHECK_RETURN(value) {											\
@@ -27,9 +28,12 @@ __constant__ float g_Na  = 120.0f; // nS
 __constant__ float g_K   = 36.0f;
 __constant__ float g_L   = .3f;
 __constant__ float E_K   = -77.0f;
-__constant__ float E_Na  = 55.0f;
+//__constant__ float E_Na  = 55.0f;
+__constant__ float E_Na  = 50.0f;
 __constant__ float E_L   = -54.4f;
 __constant__ float V_peak = 18.0f;
+__constant__ float tau_cor = 2.0f;
+
 
 int T_sim_partial = 10000; // in time frames
 int time_part_syn;
@@ -89,6 +93,10 @@ int* num_spikes_neur_dev;
 int* psn_times_dev;
 unsigned int* psn_seeds_dev;
 
+float* Ds_dev;
+float* Ds_host;
+float* Inoise_dev;
+curandState* noise_states_dev;
 // Variables for each synapse
 float* weights;
 int* pre_conns;
@@ -109,6 +117,8 @@ int* num_spk_in_bund;
 int Ncon;
 
 int T_sim;
+
+int gaussNoiseFlag = 0;
 
 void init_conns_from_file();
 

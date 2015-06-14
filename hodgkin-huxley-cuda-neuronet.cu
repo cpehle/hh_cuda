@@ -6,7 +6,7 @@
 #include <climits>
 #include <ctime>
 #include "hodgkin-huxley-cuda-neuronet.h"
-#include <cuda.h>
+
 
 unsigned int seed = 1;
 float h = 0.1f;
@@ -76,6 +76,15 @@ __global__ void init_poisson(int* psn_time, unsigned int *psn_seed, unsigned int
 	}
 }
 
+__global__ void init_noise(curandState* state, float* Inoise, float* D, unsigned int seed, int Nneur, int BundleSize){
+	int n = blockIdx.x*blockDim.x + threadIdx.x;
+	int neur = n % BundleSize;
+	if (n < Nneur){
+		curand_init(0, neur + seed, 0, &state[n]);
+		Inoise[n] += D[n]*curand_normal(&state[n]);
+	}
+}
+
 __global__ void integrate_synapses(float* y, float* weight, int* delay, int* pre_conn, int* post_conn,
 		int* spike_time, int* num_spike_syn, int* num_spike_neur, int t, int Nneur, int Ncon){
 	int s = blockDim.x*blockIdx.x + threadIdx.x;
@@ -97,11 +106,14 @@ __global__ void integrate_neurons(
 		int* spike_time, int* num_spike_neur,
 		float* I_e, float* y, float* I_syn, float* y_psn, float* I_psn, int* psn_time, unsigned int* psn_seed,
 		float* I_syn_last, float* exp_w_p, float exp_psc, float rate,
-		int Nneur, int t, float h){
+		int Nneur, int t, float h, float* D, float* Inoise, curandState* state){
 		int n = blockIdx.x*blockDim.x + threadIdx.x;
 		if (n < Nneur){
 			I_psn[n]  = (y_psn[n]*h + I_psn[n])*exp_psc;
 			y_psn[n] *= exp_psc;
+
+			// Adding colored gauss noise
+			Inoise[n] += (-Inoise[n]*h/tau_cor + sqrtf(2.0*h*D[n])/tau_cor*curand_normal(&state[n]));
 
 			I_syn[n]  = (y[n]*h + I_syn[n])*exp_psc;
 			y[n] *= exp_psc;
@@ -130,7 +142,7 @@ __global__ void integrate_neurons(
 			m_ch[n] = m_channel + m1/2.0f;
 			h_ch[n] = h_channel + h1/2.0f;
 
-			v2 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], (I_syn[n] + I_psn[n] + I_syn_last[n])/2.0f, I_e[n], h);
+			v2 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], (I_syn[n] + I_psn[n] + Inoise[n] + I_syn_last[n])/2.0f, I_e[n], h);
 			n2 = hh_n_ch(V_m[n], n_ch[n], h);
 			m2 = hh_m_ch(V_m[n], m_ch[n], h);
 			h2 = hh_h_ch(V_m[n], h_ch[n], h);
@@ -139,7 +151,7 @@ __global__ void integrate_neurons(
 			m_ch[n] = m_channel + m2/2.0f;
 			h_ch[n] = h_channel + h2/2.0f;
 
-			v3 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], (I_syn[n] + I_psn[n] + I_syn_last[n])/2.0f, I_e[n], h);
+			v3 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], (I_syn[n] + I_psn[n] + Inoise[n] + I_syn_last[n])/2.0f, I_e[n], h);
 			n3 = hh_n_ch(V_m[n], n_ch[n], h);
 			m3 = hh_m_ch(V_m[n], m_ch[n], h);
 			h3 = hh_h_ch(V_m[n], h_ch[n], h);
@@ -148,7 +160,7 @@ __global__ void integrate_neurons(
 			m_ch[n] = m_channel + m3;
 			h_ch[n] = h_channel + h3;
 
-			v4 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], I_syn[n] + I_psn[n], I_e[n], h);
+			v4 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], I_syn[n] + I_psn[n] + Inoise[n], I_e[n], h);
 			n4 = hh_n_ch(V_m[n], n_ch[n], h);
 			m4 = hh_m_ch(V_m[n], m_ch[n], h);
 			h4 = hh_h_ch(V_m[n], h_ch[n], h);
@@ -163,12 +175,14 @@ __global__ void integrate_neurons(
 				num_spike_neur[n]++;
 			}
 			V_m_last[n] = V_mem;
-			I_syn_last[n] = I_syn[n] + I_psn[n];
+			I_syn_last[n] = I_syn[n] + I_psn[n] + Inoise[n];
 
-//			if (n == 0){
-//				printf("%.3f;%g;%g;%g;%g;%g;%g\n",
+			if (n == 0 && t % 5 == 0){
+				printf("%.3f;%g;%g;%g;%g;%g;%g\n",
 //						t*h, V_m[n], V_m[n+1], I_psn[n], I_psn[n+1], I_syn[n], I_syn[n+1]);
-//			}
+						t*h, V_m[n], V_m[n+1], Inoise[n], Inoise[n+1], I_syn[n], I_syn[n+1]);
+
+			}
 		}
 }
 
@@ -186,20 +200,23 @@ int main(int argc, char* argv[]){
 	clearResFiles();
 
 	init_poisson<<<dim3(Nneur/NEUR_BLOCK_SIZE + 1), dim3(NEUR_BLOCK_SIZE)>>>(psn_times_dev, psn_seeds_dev, seed, rate, h, Nneur, W_P_BUND_SZ);
+	init_noise<<<dim3(Nneur/NEUR_BLOCK_SIZE + 1), dim3(NEUR_BLOCK_SIZE)>>>(noise_states_dev, Inoise_dev, Ds_dev, seed, Nneur, W_P_BUND_SZ);
+
 	clock_t start = clock();
 	time_t curr_time = time(0);
     char* st = asctime(localtime(&curr_time));
 	cerr << "Start: " << st << endl;
     for (int t = 1; t < T_sim; t++){
 		integrate_neurons<<<dim3((Nneur + NEUR_BLOCK_SIZE - 1)/NEUR_BLOCK_SIZE), dim3(NEUR_BLOCK_SIZE)>>>(V_ms_dev, V_ms_last_dev, n_chs_dev, m_chs_dev, h_chs_dev, spike_times_dev, num_spikes_neur_dev,
-				I_es_dev, ys_dev, I_syns_dev, y_psns_dev, I_psns_dev, psn_times_dev, psn_seeds_dev, I_last_dev, exp_w_p_dev, exp_psc, rate, Nneur, t, h);
+				I_es_dev, ys_dev, I_syns_dev, y_psns_dev, I_psns_dev, psn_times_dev, psn_seeds_dev, I_last_dev, exp_w_p_dev, exp_psc, rate, Nneur, t, h,
+				Ds_dev, Inoise_dev, noise_states_dev);
 		cudaDeviceSynchronize();
 		integrate_synapses<<<dim3((Ncon + SYN_BLOCK_SIZE -1)/SYN_BLOCK_SIZE), dim3(SYN_BLOCK_SIZE)>>>(ys_dev, weights_dev, delays_dev, pre_conns_dev, post_conns_dev,
 				spike_times_dev, num_spikes_syn_dev, num_spikes_neur_dev, t, Nneur, Ncon);
 		cudaDeviceSynchronize();
 
 		if ((t % T_sim_partial) == 0){
-			cout << t*h << endl;
+//			cout << t*h << endl;
 			CUDA_CHECK_RETURN(cudaMemcpy(spike_times, spike_times_dev, Nneur*sizeof(int)*T_sim_partial/time_part_syn, cudaMemcpyDeviceToHost));
 			CUDA_CHECK_RETURN(cudaMemcpy(num_spikes_neur, num_spikes_neur_dev, Nneur*sizeof(int), cudaMemcpyDeviceToHost));
 			CUDA_CHECK_RETURN(cudaMemcpy(num_spikes_syn, num_spikes_syn_dev, Ncon*sizeof(int), cudaMemcpyDeviceToHost));
@@ -209,7 +226,7 @@ int main(int argc, char* argv[]){
 			CUDA_CHECK_RETURN(cudaMemcpy(num_spikes_syn_dev, num_spikes_syn, Ncon*sizeof(int), cudaMemcpyHostToDevice));
 			if ( t % SaveIntervalTIdx == 0){
 				apndResToFile();
-				cout << "Results saved to file!" << endl;
+//				cout << "Results saved to file!" << endl;
 			}
 		}
 	}
@@ -276,11 +293,17 @@ void init_neurs_from_file(){
 //			m_chs[idx] = 0.0833f;
 //			h_chs[idx] = 0.4636f;
 
-			I_es[idx] = I_e - tau_psc*2.71828*rate/1000*(w_p_start + ((w_p_stop - w_p_start)/W_P_NUM_BUND)*bund);
-//			float I_e_min = 5.22f;
-//			float I_e_max = 5.30f;
-//			I_es[idx] = I_e_min + (I_e_max-I_e_min)*get_random(param_distr_seeds + idx);
-			exp_w_p[idx] = (expf(1.0f)/tau_psc)*(w_p_start + ((w_p_stop - w_p_start)/W_P_NUM_BUND)*bund);
+			I_es[idx] = I_e;
+
+			if (gaussNoiseFlag == 1){
+				exp_w_p[idx] = 0.0f;
+				Ds_host[idx] = (w_p_start + ((w_p_stop - w_p_start)/W_P_NUM_BUND)*bund);
+			} else {
+				exp_w_p[idx] = (expf(1.0f)/tau_psc)*(w_p_start + ((w_p_stop - w_p_start)/W_P_NUM_BUND)*bund);
+				Ds_host[idx] = 0.0f;
+			}
+
+
 		}
 	}
 }
@@ -404,6 +427,8 @@ void malloc_neur_memory(){
 
 	exp_w_p = new float[Nneur];
 
+	Ds_host = new float[Nneur];
+
 	// if num-th spike occur at a time t on n-th neuron then,
 	// t is stored in element with index Nneur*num + n
 	// spike_times[Nneur*num + n] = t
@@ -453,6 +478,14 @@ void copy2device(){
 	cudaMalloc((void**) &psn_times_dev, n_isize);
 	cudaMalloc((void**) &psn_seeds_dev, n_isize);
 
+	// colored Gauss noise variables
+	cudaMalloc((void**) &Ds_dev, n_fsize);
+	cudaMalloc((void**) &Inoise_dev, n_fsize);
+	cudaMalloc((void**) &noise_states_dev, Nneur*sizeof(curandState));
+
+	cudaMemset(Inoise_dev, 0, n_fsize);
+	cudaMemset(Ds_dev, 0, n_fsize);
+
 	// Allocating memory for array which contain var's for each synapse
 	cudaMalloc((void**) &weights_dev, s_fsize);
 	cudaMalloc((void**) &pre_conns_dev, s_isize);
@@ -477,6 +510,8 @@ void copy2device(){
 	cudaMemcpy(I_last_dev, I_last, n_fsize, cudaMemcpyHostToDevice);
 
 	cudaMemcpy(exp_w_p_dev, exp_w_p, n_fsize, cudaMemcpyHostToDevice);
+
+	cudaMemcpy(Ds_dev, Ds_host, n_fsize, cudaMemcpyHostToDevice);
 
 	cudaMemcpy(spike_times_dev, spike_times, spike_times_sz, cudaMemcpyHostToDevice);
 	cudaMemcpy(num_spikes_neur_dev, num_spikes_neur, n_isize, cudaMemcpyHostToDevice);
@@ -506,6 +541,7 @@ void init_params(int argc, char* argv[]){
 			case 11: str >> w_n; break;
 			case 12: str >> par_f_name; break;
 			case 13: str >> I_e; break;
+			case 14: str >> gaussNoiseFlag; break;
 		}
 	}
 	W_P_BUND_SZ = Nneur/W_P_NUM_BUND;
