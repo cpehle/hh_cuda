@@ -195,8 +195,9 @@ int main(int argc, char* argv[]){
 	cudaSetDevice(0);
 	copy2device();
 	clearResFiles();
-//	clear_oscill_file();
-
+#ifdef OSCILL_SAVE
+	clear_oscill_file();
+#endif
 	init_poisson<<<dim3(Nneur/NEUR_BLOCK_SIZE + 1), dim3(NEUR_BLOCK_SIZE)>>>(psn_times_dev, psn_seeds_dev, seed, rate, h, Nneur, W_P_BUND_SZ);
 	init_noise<<<dim3(Nneur/NEUR_BLOCK_SIZE + 1), dim3(NEUR_BLOCK_SIZE)>>>(noise_states_dev, Inoise_dev, Ds_dev, seed, Nneur, W_P_BUND_SZ);
 

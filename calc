@@ -26,15 +26,28 @@
 # Ie=5.27
 
 # params for 2 neurs
-Nneur=2
-sim_time=2000000.
+# Nneur=2
+# sim_time=2000.
+# h=0.1
+# rate=185.0
+# w_n=5.4
+# w_p1=1.1
+# w_p2=2.6
+# w_p_nbund=15
+# seed_nbund=5
+# seed=0
+# Ie=5.27
+
+# params for 10 neurs
+Nneur=10
+sim_time=100000.
 h=0.1
 rate=185.0
-w_n=5.4
-w_p1=1.1
-w_p2=2.6
-w_p_nbund=15
-seed_nbund=5
+w_n=5.0
+w_p1=1.0
+w_p2=5.1
+w_p_nbund=41
+seed_nbund=1
 seed=0
 Ie=5.27
 

@@ -37,37 +37,37 @@ def load(seed=0):
     Vm = array(Vm[1:], dtype='float32')
     return t, Vm
 
-def calcQuality(Nstart, Nstop):
-    for i in xrange(Nstart, Nstop):
-        t, Vm = load(i)
-        spec = abs(fft(Vm - mean(Vm)))
-        if i == Nstart:
-            specMean = spec
-        else:
-            specMean += spec
-    specMean /= (Nstop - Nstart)
+#def calcQuality(Nstart, Nstop):
+#    for i in xrange(Nstart, Nstop):
+#        t, Vm = load(i)
+#        spec = abs(fft(Vm - mean(Vm)))
+#        if i == Nstart:
+#            specMean = spec
+#        else:
+#            specMean += spec
+#    specMean /= (Nstop - Nstart)
+#
+##    specMean = gs_filter(specMean, 2)
+#
+#    specMean = fftshift(specMean)
+#    specMean = specMean[len(specMean)/2:]
+#
+#    frange = linspace(0, 0.5*1000/h, len(specMean))
+#
+#    fmax = frange[argmax(specMean)]
+#    afmax = max(specMean)
+#
+#    df=diff(array(specMean > afmax/2., dtype='int'))
+#    egg = frange[nonzero(df)[0][1]] - frange[nonzero(df)[0][0]]
+#
+#    return afmax*fmax/egg
+#bs = []
+#for i in range(15):
+#    bs.append(calcQuality(i*2, (i+1)*2))
+#
+#semilogx(arange(1.1, 2.6, 0.1), bs)
 
-    specMean = gs_filter(specMean, 2)
-
-    specMean = fftshift(specMean)
-    specMean = specMean[len(specMean)/2:]
-
-    frange = linspace(0, 0.5*1000/h, len(specMean))
-
-    fmax = frange[argmax(specMean)]
-    afmax = max(specMean)
-
-    df=diff(array(specMean > afmax/2., dtype='int'))
-    egg = frange[nonzero(df)[0][1]] - frange[nonzero(df)[0][0]]
-
-    return afmax*fmax/egg
-bs = []
-for i in range(15):
-    bs.append(calcQuality(i*2, (i+1)*2))
-
-semilogx(arange(1.1, 2.6, 0.1), bs)
-
-#t, Vm = load(100)
+t, Vm = load(100)
 #Nstart = 0
 #Nstop = 1
 #h = 0.25
@@ -89,7 +89,7 @@ semilogx(arange(1.1, 2.6, 0.1), bs)
 #xlabel("freq, Hz")
 #xlabel("|S|")
 #
-#plot(t, Vm, label='1')
-#ylabel("Membrane potential, mV")
-#xlabel("Time, ms")
-#legend()
+plot(t, Vm, label='1')
+ylabel("Membrane potential, mV")
+xlabel("Time, ms")
+legend()

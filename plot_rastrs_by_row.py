@@ -24,6 +24,11 @@ varParam = np.arange(1.1, 2.51, 0.2)
 #w_n = 1.3
 #varParam = np.arange(2.0, 2.15, 0.01)
 
+N = 10
+rate = 185.0
+w_n = 5.0
+varParam = np.arange(1.0, 3.0, 0.1)
+
 path = 'N_{N}_rate_{rate}_w_n_{w_n}_Ie_{Ie}/seed_{seed}'.format(N=N, rate=rate, Ie=Ie, seed=seed, w_n=w_n)
 
 fig = pl.figure("rastrs", figsize=(12, 9))
