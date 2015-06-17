@@ -9,11 +9,18 @@ import matplotlib.pylab as pl
 
 cv = []
 Dall = []
-for D in np.arange(20.0, 200.1, 20.0):
-    spkTimes = np.load('{path}/D_{D}_spkTimes.npy'.format(path='std2', D=D))
+#for D in np.arange(10.0, 210.0, 20.0):
+for D in np.arange(200.0, 640.0, 40.0):
+    spkTimes = np.load('{path}/D_{D}_spkTimes.npy'.format(path='res', D=D))
     isiAll = np.diff(spkTimes)
     cv.append(np.std(isiAll)/np.mean(isiAll))
     Dall.append(D)
 
+pl.figure(1)
 pl.semilogx(Dall, cv)
 pl.show()
+
+#%%
+#spkTimes = np.load('{path}/D_{D}_spkTimes.npy'.format(path='res', D=50.0))
+#isiAll = np.diff(spkTimes)
+#cv.append(np.std(isiAll)/np.mean(isiAll))

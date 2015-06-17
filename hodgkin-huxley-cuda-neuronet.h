@@ -28,14 +28,18 @@ __constant__ float g_Na  = 120.0f; // nS
 __constant__ float g_K   = 36.0f;
 __constant__ float g_L   = .3f;
 __constant__ float E_K   = -77.0f;
-//__constant__ float E_Na  = 55.0f;
-__constant__ float E_Na  = 50.0f;
+__constant__ float E_Na  = 55.0f;
+//__constant__ float E_Na  = 50.0f;
 __constant__ float E_L   = -54.4f;
 __constant__ float V_peak = 18.0f;
 __constant__ float tau_cor = 2.0f;
+__constant__ int recInt_dev = 5;
+int recInt = 5;
 
 
 int T_sim_partial = 10000; // in time frames
+__constant__ unsigned int T_sim_part_dev = 10000; // in time frames
+
 int time_part_syn;
 // maximum part of simulating time for which is allocated memory
 // time_part_syn <= T[ms]/h[ms]
@@ -114,6 +118,9 @@ float* res_times;
 int* res_senders;
 int* num_spk_in_bund;
 
+float* Vrec;
+float* Vrec_dev;
+
 int Ncon;
 
 int T_sim;
@@ -140,6 +147,10 @@ void init_poisson();
 
 void clear_files();
 
+void save_oscill(int tm, bool lastFlag=false);
+
 void init_params(int, char*[]);
 
 void apndResToFile();
+
+void clear_oscill_file();

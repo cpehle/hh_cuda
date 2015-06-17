@@ -10,13 +10,18 @@ import numpy as np
 import csv
 import os
 
+seed = 0
+Ie=5.27
+
 N = 2
 rate = 185.0
-seed = 0
 w_n = 5.4
-Ie=5.0
-#varParam = np.linspace(2.0, 2.13, 7, endpoint=True)
-varParam = np.linspace(1.2, 4.2, 30, endpoint=False)
+varParam = np.arange(1.1, 2.51, 0.1)
+
+#N = 100
+#rate = 180.0
+#w_n = 1.3
+#varParam = np.arange(2.0, 2.15, 0.01)
 
 def loadIsi(w_p):
     print w_p
@@ -63,4 +68,5 @@ for w_p in varParam:
 isiMn = np.array(isiMn)
 isiStd = np.array(isiStd)
 
+#pl.semilogx(varParam, isiStd/isiMn)
 pl.plot(varParam, isiStd/isiMn)

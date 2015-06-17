@@ -11,20 +11,22 @@ import matplotlib.pyplot as pl
 from matplotlib.gridspec import GridSpec
 from scipy.ndimage.filters import gaussian_filter as gs_filter
 
+seed=0
+Ie=5.27
+
 rate = 185.0
 N=2
-seed=0
-Ie=5.4
 w_n=5.4
+varParam = np.arange(1.1, 2.51, 0.2)
+
+#N = 100
+#rate = 180.0
+#w_n = 1.3
+#varParam = np.arange(2.0, 2.15, 0.01)
+
 path = 'N_{N}_rate_{rate}_w_n_{w_n}_Ie_{Ie}/seed_{seed}'.format(N=N, rate=rate, Ie=Ie, seed=seed, w_n=w_n)
 
-# path = 'res'
-
-varParam = np.arange(1.4, 3.4, 0.3)
-#varParam = np.linspace(2.0, 2.13, 7, endpoint=True)
-
 fig = pl.figure("rastrs", figsize=(12, 9))
-#fig = pl.figure(figsize=(24, 18))
 matplotlib.rc('lines', linewidth=.75)
 matplotlib.rc('font', size=12.)
 
@@ -40,11 +42,11 @@ for idx, param in enumerate(varParam):
         ax = pl.subplot(gs[idx, 1])
         max_yticks = 2
         yloc = pl.MaxNLocator(max_yticks)
-        ax.yaxis.set_major_locator(yloc)    
+        ax.yaxis.set_major_locator(yloc)
     else:
         ax = pl.subplot(gs[idx, 1], sharey=ax)
         pl.setp(ax.get_yticklabels(), visible=False)
-        
+
     ax.plot(time, awsr, color = 'k')
     ax.set_xticks([])
     ax.set_title(r"$w_p={0}$".format(param))
@@ -55,8 +57,8 @@ for idx, param in enumerate(varParam):
 
     pl.setp(ax2.get_xticklabels(), visible=False)
     pl.setp(ax2.get_yticklabels(), visible=False)
-    
-    
+
+
     if idx == 2:
         ax.set_ylabel("TSR", fontsize=22.)
         ax2.set_ylabel("TSR distribution", fontsize=22.)

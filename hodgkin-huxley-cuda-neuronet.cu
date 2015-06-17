@@ -7,7 +7,6 @@
 #include <ctime>
 #include "hodgkin-huxley-cuda-neuronet.h"
 
-
 unsigned int seed = 1;
 float h = 0.1f;
 float SimulationTime = 10000.0f; // in ms
@@ -106,7 +105,7 @@ __global__ void integrate_neurons(
 		int* spike_time, int* num_spike_neur,
 		float* I_e, float* y, float* I_syn, float* y_psn, float* I_psn, int* psn_time, unsigned int* psn_seed,
 		float* I_syn_last, float* exp_w_p, float exp_psc, float rate,
-		int Nneur, int t, float h, float* D, float* Inoise, curandState* state){
+		int Nneur, int t, float h, float* D, float* Inoise, curandState* state, float* Vrec){
 		int n = blockIdx.x*blockDim.x + threadIdx.x;
 		if (n < Nneur){
 			I_psn[n]  = (y_psn[n]*h + I_psn[n])*exp_psc;
@@ -176,13 +175,11 @@ __global__ void integrate_neurons(
 			}
 			V_m_last[n] = V_mem;
 			I_syn_last[n] = I_syn[n] + I_psn[n] + Inoise[n];
-
-			if (n == 0 && t % 5 == 0){
-				printf("%.3f;%g;%g;%g;%g;%g;%g\n",
-//						t*h, V_m[n], V_m[n+1], I_psn[n], I_psn[n+1], I_syn[n], I_syn[n+1]);
-						t*h, V_m[n], V_m[n+1], Inoise[n], Inoise[n+1], I_syn[n], I_syn[n+1]);
-
+#ifdef OSCILL_SAVE
+			if (t % recInt_dev == 0){
+				Vrec[Nneur*(t % T_sim_part_dev/recInt_dev) + n] = V_m[n];
 			}
+#endif
 		}
 }
 
@@ -198,6 +195,7 @@ int main(int argc, char* argv[]){
 	cudaSetDevice(0);
 	copy2device();
 	clearResFiles();
+//	clear_oscill_file();
 
 	init_poisson<<<dim3(Nneur/NEUR_BLOCK_SIZE + 1), dim3(NEUR_BLOCK_SIZE)>>>(psn_times_dev, psn_seeds_dev, seed, rate, h, Nneur, W_P_BUND_SZ);
 	init_noise<<<dim3(Nneur/NEUR_BLOCK_SIZE + 1), dim3(NEUR_BLOCK_SIZE)>>>(noise_states_dev, Inoise_dev, Ds_dev, seed, Nneur, W_P_BUND_SZ);
@@ -207,29 +205,42 @@ int main(int argc, char* argv[]){
     char* st = asctime(localtime(&curr_time));
 	cerr << "Start: " << st << endl;
     for (int t = 1; t < T_sim; t++){
+#ifdef OSCILL_SAVE
+		cudaDeviceSynchronize();
+    	if (t % T_sim_partial == 0){
+			CUDA_CHECK_RETURN(cudaMemcpy(Vrec, Vrec_dev, Nneur*T_sim_partial/recInt*sizeof(float), cudaMemcpyDeviceToHost));
+			save_oscill(t);
+    	}
+#endif
 		integrate_neurons<<<dim3((Nneur + NEUR_BLOCK_SIZE - 1)/NEUR_BLOCK_SIZE), dim3(NEUR_BLOCK_SIZE)>>>(V_ms_dev, V_ms_last_dev, n_chs_dev, m_chs_dev, h_chs_dev, spike_times_dev, num_spikes_neur_dev,
 				I_es_dev, ys_dev, I_syns_dev, y_psns_dev, I_psns_dev, psn_times_dev, psn_seeds_dev, I_last_dev, exp_w_p_dev, exp_psc, rate, Nneur, t, h,
-				Ds_dev, Inoise_dev, noise_states_dev);
+				Ds_dev, Inoise_dev, noise_states_dev, Vrec_dev);
 		cudaDeviceSynchronize();
 		integrate_synapses<<<dim3((Ncon + SYN_BLOCK_SIZE -1)/SYN_BLOCK_SIZE), dim3(SYN_BLOCK_SIZE)>>>(ys_dev, weights_dev, delays_dev, pre_conns_dev, post_conns_dev,
 				spike_times_dev, num_spikes_syn_dev, num_spikes_neur_dev, t, Nneur, Ncon);
 		cudaDeviceSynchronize();
-
-		if ((t % T_sim_partial) == 0){
-//			cout << t*h << endl;
+    	if ((t % T_sim_partial) == 0){
+			cout << t*h << endl;
 			CUDA_CHECK_RETURN(cudaMemcpy(spike_times, spike_times_dev, Nneur*sizeof(int)*T_sim_partial/time_part_syn, cudaMemcpyDeviceToHost));
 			CUDA_CHECK_RETURN(cudaMemcpy(num_spikes_neur, num_spikes_neur_dev, Nneur*sizeof(int), cudaMemcpyDeviceToHost));
 			CUDA_CHECK_RETURN(cudaMemcpy(num_spikes_syn, num_spikes_syn_dev, Ncon*sizeof(int), cudaMemcpyDeviceToHost));
+
 			swap_spikes();
 			CUDA_CHECK_RETURN(cudaMemcpy(spike_times_dev, spike_times, Nneur*sizeof(int)*T_sim_partial/time_part_syn, cudaMemcpyHostToDevice));
 			CUDA_CHECK_RETURN(cudaMemcpy(num_spikes_neur_dev, num_spikes_neur, Nneur*sizeof(int), cudaMemcpyHostToDevice));
 			CUDA_CHECK_RETURN(cudaMemcpy(num_spikes_syn_dev, num_spikes_syn, Ncon*sizeof(int), cudaMemcpyHostToDevice));
 			if ( t % SaveIntervalTIdx == 0){
 				apndResToFile();
-//				cout << "Results saved to file!" << endl;
+				cout << "Results saved to file!" << endl;
 			}
+
 		}
 	}
+#ifdef OSCILL_SAVE
+	CUDA_CHECK_RETURN(cudaMemcpy(Vrec, Vrec_dev, Nneur*T_sim_partial/recInt*sizeof(float), cudaMemcpyDeviceToHost));
+	save_oscill(0, true);
+#endif
+
 	cudaDeviceSynchronize();
 	cudaMemcpy(spike_times, spike_times_dev, Nneur*sizeof(int)*T_sim_partial/time_part_syn, cudaMemcpyDeviceToHost);
 	cudaMemcpy(num_spikes_neur, num_spikes_neur_dev, Nneur*sizeof(int), cudaMemcpyDeviceToHost);
@@ -302,8 +313,6 @@ void init_neurs_from_file(){
 				exp_w_p[idx] = (expf(1.0f)/tau_psc)*(w_p_start + ((w_p_stop - w_p_start)/W_P_NUM_BUND)*bund);
 				Ds_host[idx] = 0.0f;
 			}
-
-
 		}
 	}
 }
@@ -439,6 +448,8 @@ void malloc_neur_memory(){
 	res_times = new float[W_P_NUM_BUND*NUM_BUND*expected_spk_num];
 	res_senders = new int[W_P_NUM_BUND*NUM_BUND*expected_spk_num];
 	num_spk_in_bund = new int[W_P_NUM_BUND*NUM_BUND]();
+
+	Vrec = new float[Nneur*T_sim_partial/recInt];
 }
 
 void malloc_conn_memory(){
@@ -493,6 +504,8 @@ void copy2device(){
 	cudaMalloc((void**) &delays_dev, s_isize);
 	cudaMalloc((void**) &num_spikes_syn_dev, s_isize);
 
+	cudaMalloc((void**) &Vrec_dev, Nneur*T_sim_partial/recInt*sizeof(float));
+
 	// Copying to GPU device memory neuron arrays
 	cudaMemcpy(V_ms_dev, V_ms, n_fsize, cudaMemcpyHostToDevice);
 	cudaMemcpy(V_ms_last_dev, V_ms_last, n_fsize, cudaMemcpyHostToDevice);
@@ -508,9 +521,7 @@ void copy2device(){
 
 
 	cudaMemcpy(I_last_dev, I_last, n_fsize, cudaMemcpyHostToDevice);
-
 	cudaMemcpy(exp_w_p_dev, exp_w_p, n_fsize, cudaMemcpyHostToDevice);
-
 	cudaMemcpy(Ds_dev, Ds_host, n_fsize, cudaMemcpyHostToDevice);
 
 	cudaMemcpy(spike_times_dev, spike_times, spike_times_sz, cudaMemcpyHostToDevice);
@@ -546,4 +557,39 @@ void init_params(int argc, char* argv[]){
 	}
 	W_P_BUND_SZ = Nneur/W_P_NUM_BUND;
 	NUM_BUND = W_P_BUND_SZ/BUND_SZ;
+}
+
+void clear_oscill_file(){
+	FILE* file;
+	stringstream s;
+	s.precision(2);
+	char* name = new char[500];
+	for (int j = 0; j < Nneur; j++){
+		s << f_name << "/" << "N_" << j << "_oscill.csv" << endl;
+		s >> name;
+		file = fopen(name, "w");
+		fclose(file);
+	}
+}
+
+void save_oscill(int tm, bool lastFlag /*lastFlag=false*/){
+	int Tshift = tm - T_sim_partial;
+	int Tmax = T_sim_partial/recInt;
+	if (lastFlag) {
+		Tshift = T_sim - 1 - (T_sim - 1) % T_sim_partial;
+		Tmax = ((T_sim - 1) % T_sim_partial)/recInt;
+	}
+	FILE* file;
+	stringstream s;
+	s.precision(2);
+	char* name = new char[500];
+	for (int j = 0; j < Nneur; j++){
+		s << f_name << "/" << "N_" << j << "_oscill.csv" << endl;
+		s >> name;
+		file = fopen(name, "a+");
+		for (int t = 0; t < Tmax; t++){
+			fprintf(file, "%.3f\t%.3f\n", (Tshift + t*recInt)*h, Vrec[Nneur*t + j]);
+		}
+		fclose(file);
+	}
 }
