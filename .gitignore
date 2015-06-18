@@ -1,6 +1,7 @@
 *.csv
 *.pyc
 *.npy
+*.odt
 .*
 */
 !.gitignore
