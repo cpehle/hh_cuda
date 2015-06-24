@@ -37,8 +37,8 @@ __constant__ int recInt_dev = 5;
 int recInt = 5;
 
 
-int T_sim_partial = 10000; // in time frames
-__constant__ unsigned int T_sim_part_dev = 10000; // in time frames
+int T_sim_partial = 100000; // in time frames
+__constant__ unsigned int T_sim_part_dev = 100000; // in time frames
 
 int time_part_syn;
 // maximum part of simulating time for which is allocated memory

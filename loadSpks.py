@@ -11,28 +11,33 @@ import csv
 import os
 
 seed = 0
-Ie=5.27
+Ie=5.40
 
-N = 2
-rate = 185.0
-w_n = 5.4
-varParam = np.arange(1.1, 2.51, 0.1)
+#N = 2
+#rate = 185.0
+#w_n = 5.4
+#varParam = np.arange(0.5, 2.51, 0.1)
 
 #N = 100
 #rate = 180.0
 #w_n = 1.3
 #varParam = np.arange(2.0, 2.15, 0.01)
 
+N = 30
+rate = 170.0
+w_n = 2.4
+varParam = np.arange(1.6, 2.15, 0.025)
+
 def loadIsi(w_p):
     print w_p
     isiAll = []
-    for seed in range(0, 1):
+    for seed in range(0, 5):
         snd = []
         tm = []
-        path = 'N_{N}_rate_{rate}_w_n_{w_n}_Ie_{Ie}/seed_{seed}'.format(N=N, Ie=Ie, rate=rate, seed=seed, w_n=w_n)
-        fname = path+"/spkTimes_w_p_{0:.2f}.npy".format(w_p)
+        path = 'N_{N}_rate_{rate}_w_n_{w_n}_Ie_{Ie:.2f}/seed_{seed}'.format(N=N, Ie=Ie, rate=rate, seed=seed, w_n=w_n)
+        fname = path+"/spkTimes_w_p_{0:.3f}.npy".format(w_p)
         if not os.path.exists(fname):
-            f = open(path+"/w_p_{0:.2f}".format(w_p), "r")
+            f = open(path+"/w_p_{0:.3f}".format(w_p), "r")
             rdr = csv.reader(f,delimiter="\t")
             for l in rdr:
                 snd.append(l[0])
@@ -70,3 +75,7 @@ isiStd = np.array(isiStd)
 
 #pl.semilogx(varParam, isiStd/isiMn)
 pl.plot(varParam, isiStd/isiMn)
+
+save('N_{}_rate_{}_w_n_{}_Ie_{:.2f}_cv.npy'.format(N, rate, w_n, Ie),
+     (varParam, isiStd, isiMn))
+

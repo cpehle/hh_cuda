@@ -12,24 +12,29 @@ from matplotlib.gridspec import GridSpec
 from scipy.ndimage.filters import gaussian_filter as gs_filter
 
 seed=0
-Ie=5.27
+Ie=5.24
 
-rate = 185.0
-N=2
-w_n=5.4
-varParam = np.arange(1.1, 2.51, 0.2)
+#rate = 185.0
+#N=2
+#w_n=5.4
+#varParam = np.arange(0.5, 2.51, 0.2)
 
 #N = 100
 #rate = 180.0
 #w_n = 1.3
-#varParam = np.arange(2.0, 2.15, 0.01)
+#varParam = np.arange(2.0, 2.15, 0.02)
 
-N = 10
-rate = 185.0
-w_n = 5.0
-varParam = np.arange(1.0, 3.0, 0.1)
+#N = 10
+#rate = 180.0
+#w_n = 5.0
+#varParam = np.arange(2.0, 3.0, 0.2)
 
-path = 'N_{N}_rate_{rate}_w_n_{w_n}_Ie_{Ie}/seed_{seed}'.format(N=N, rate=rate, Ie=Ie, seed=seed, w_n=w_n)
+N = 30
+rate = 170.0
+w_n = 2.4
+varParam = np.arange(1.8, 2.15, 0.05)
+
+path = 'N_{N}_rate_{rate}_w_n_{w_n}_Ie_{Ie:.2f}/seed_{seed}'.format(N=N, rate=rate, Ie=Ie, seed=seed, w_n=w_n)
 
 fig = pl.figure("rastrs", figsize=(12, 9))
 matplotlib.rc('lines', linewidth=.75)
@@ -40,7 +45,7 @@ gs = GridSpec(len(varParam), 2, width_ratios = [1, 4])
 for idx, param in enumerate(varParam):
     (time, awsr) = np.load(path + '/awsr_w_p_{0:.2f}'.format(param) + '.npy')
 #     (time, awsr) = np.load(path + '/awsr_std_' + str(param) + '.npy')
-    awsr = gs_filter(awsr, 2)
+    awsr = gs_filter(awsr, 10)
     time /= 1000.
 
     if idx == 0:
@@ -54,7 +59,7 @@ for idx, param in enumerate(varParam):
 
     ax.plot(time, awsr, color = 'k')
     ax.set_xticks([])
-    ax.set_title(r"$w_p={0}$".format(param))
+#    ax.set_title(r"$w_p={0}$".format(param))
 
     ax2 = pl.subplot(gs[idx, 0], sharey=ax)
 
@@ -64,9 +69,9 @@ for idx, param in enumerate(varParam):
     pl.setp(ax2.get_yticklabels(), visible=False)
 
 
-    if idx == 2:
-        ax.set_ylabel("TSR", fontsize=22.)
-        ax2.set_ylabel("TSR distribution", fontsize=22.)
+#    if idx == 2:
+#        ax.set_ylabel("TSR", fontsize=22.)
+#        ax2.set_ylabel("TSR distribution", fontsize=22.)
 
 ax.set_xticks(np.linspace(0, max(time), 11))
 ax.set_xlabel("Time, s")

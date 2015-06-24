@@ -385,7 +385,7 @@ void swap_spikes(){
 void clearResFiles(){
 	FILE* file;
 	stringstream s;
-	s.precision(2);
+	s.precision(3);
 	char* name = new char[500];
 	for (int i = 0; i < W_P_NUM_BUND; i++){
 		for (int j = 0; j < NUM_BUND; j++){
@@ -402,7 +402,7 @@ void clearResFiles(){
 void apndResToFile(){
 	FILE* file;
 	stringstream s;
-	s.precision(2);
+	s.precision(3);
 	char* name = new char[500];
 	for (int i = 0; i < W_P_NUM_BUND; i++){
 		for (int j = 0; j < NUM_BUND; j++){
