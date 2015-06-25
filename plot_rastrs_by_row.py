@@ -32,11 +32,11 @@ Ie=5.20
 N = 30
 rate = 170.0
 w_n = 2.4
-varParam = np.arange(1.65, 2.151, 0.05)
+varParam = np.arange(1.0, 2.151, 0.05)
 
-path = 'cutoff_N_{N}_rate_{rate}_w_n_{w_n}_Ie_{Ie:.2f}/seed_{seed}'.format(N=N, rate=rate, Ie=Ie, seed=seed, w_n=w_n)
+path = 'N_{N}_rate_{rate}_w_n_{w_n}_Ie_{Ie:.2f}/seed_{seed}'.format(N=N, rate=rate, Ie=Ie, seed=seed, w_n=w_n)
 
-fig = pl.figure("rastrs_cutoff", figsize=(12, 9))
+fig = pl.figure("rastrs", figsize=(12, 9))
 matplotlib.rc('lines', linewidth=0.75)
 matplotlib.rc('font', size=12.)
 

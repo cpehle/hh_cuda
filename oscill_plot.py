@@ -27,7 +27,7 @@ w_n = 2.4
 #varParam = arange(1.6, 2.15, 0.025)
 varParam = arange(1.0, 2.151, 0.05)
 
-path = 'cutoff_N_{0}_rate_{1}_w_n_{2}_Ie_{3:.2f}/'.format(N, rate, w_n, Ie)
+path = 'N_{0}_rate_{1}_w_n_{2}_Ie_{3:.2f}/'.format(N, rate, w_n, Ie)
 
 def load(seed=0):
     t = []
@@ -95,7 +95,7 @@ def calcQuality(Nstart, Nstop):
 #xlabel("|S|")
 #
 figure()
-t, Vm = load(480)
+t, Vm = load(0)
 plot(t, Vm)
 ylabel("Membrane potential, mV")
 xlabel("Time, ms")

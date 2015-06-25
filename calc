@@ -69,7 +69,7 @@ for Ie in `LANG=en_US.UTF-8 seq 5.2 0.04 5.40`; do
   par_fname=nn_params_$Nneur.csv
   let "Ntotal = Nneur*w_p_nbund*seed_nbund"
   echo "Total Neur Num: $Ntotal"
-  fname=cutoff\_N\_$Nneur\_rate_$rate\_w_n_$w_n\_Ie\_$Ie
+  fname=N\_$Nneur\_rate_$rate\_w_n_$w_n\_Ie\_$Ie
   mkdir $fname
   for j in `seq $seed $[$seed_nbund + $seed - 1]`;do
       mkdir $fname/seed\_$j

@@ -11,7 +11,7 @@ import csv
 import os
 
 seed = 0
-Ie=5.40
+Ie=5.2
 
 #N = 2
 #rate = 185.0
@@ -26,12 +26,12 @@ Ie=5.40
 N = 30
 rate = 170.0
 w_n = 2.4
-varParam = np.arange(1.6, 2.15, 0.025)
+varParam = np.arange(1.0, 2.15, 0.05)
 
 def loadIsi(w_p):
     print w_p
     isiAll = []
-    for seed in range(0, 5):
+    for seed in range(0, 1):
         snd = []
         tm = []
         path = 'N_{N}_rate_{rate}_w_n_{w_n}_Ie_{Ie:.2f}/seed_{seed}'.format(N=N, Ie=Ie, rate=rate, seed=seed, w_n=w_n)
