@@ -108,6 +108,7 @@ __global__ void integrate_neurons(
 		int Nneur, int t, float h, float* D, float* Inoise, curandState* state, float* Vrec){
 		int n = blockIdx.x*blockDim.x + threadIdx.x;
 		if (n < Nneur){
+
 			I_psn[n]  = (y_psn[n]*h + I_psn[n])*exp_psc;
 			y_psn[n] *= exp_psc;
 
@@ -122,7 +123,6 @@ __global__ void integrate_neurons(
 				y_psn[n] += exp_w_p[n];
 				psn_time[n] -= (1000.0f/(rate*h))*logf(get_random(psn_seed + n));
 			}
-
 			float V_mem, n_channel, m_channel, h_channel;
 			float v1, v2, v3, v4;
 			float n1, n2, n3, n4;

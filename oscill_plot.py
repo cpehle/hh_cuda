@@ -9,7 +9,7 @@ import csv
 from numpy.fft import fft
 
 seed = 0
-Ie=5.2
+Ie=5.20
 
 #N = 2
 #rate = 185.0
@@ -25,9 +25,9 @@ N = 30
 rate = 170.0
 w_n = 2.4
 #varParam = arange(1.6, 2.15, 0.025)
-varParam = arange(1.65, 2.2, 0.025)
+varParam = arange(1.0, 2.151, 0.05)
 
-path = 'N_{0}_rate_{1}_w_n_{2}_Ie_{3:.2f}/'.format(N, rate, w_n, Ie)
+path = 'cutoff_N_{0}_rate_{1}_w_n_{2}_Ie_{3:.2f}/'.format(N, rate, w_n, Ie)
 
 def load(seed=0):
     t = []
@@ -67,11 +67,11 @@ def calcQuality(Nstart, Nstop):
     egg = frange[nonzero(df)[0][1]] - frange[nonzero(df)[0][0]]
 
     return afmax*fmax/egg
-bs = []
-for i in range(22):
-    bs.append(calcQuality(i*30, (i+1)*30))
-
-semilogx(varParam, bs)
+#bs = []
+#for i in range(22):
+#    bs.append(calcQuality(i*30, (i+1)*30))
+#
+#semilogx(varParam, bs)
 
 #Nstart = 630
 #Nstop = 640
@@ -94,8 +94,9 @@ semilogx(varParam, bs)
 #xlabel("freq, Hz")
 #xlabel("|S|")
 #
-#t, Vm = load(659)
-#plot(t, Vm)
-#ylabel("Membrane potential, mV")
-#xlabel("Time, ms")
-#legend()
+figure()
+t, Vm = load(480)
+plot(t, Vm)
+ylabel("Membrane potential, mV")
+xlabel("Time, ms")
+legend()

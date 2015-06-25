@@ -12,7 +12,7 @@ from matplotlib.gridspec import GridSpec
 from scipy.ndimage.filters import gaussian_filter as gs_filter
 
 seed=0
-Ie=5.24
+Ie=5.20
 
 #rate = 185.0
 #N=2
@@ -32,12 +32,12 @@ Ie=5.24
 N = 30
 rate = 170.0
 w_n = 2.4
-varParam = np.arange(1.8, 2.15, 0.05)
+varParam = np.arange(1.65, 2.151, 0.05)
 
-path = 'N_{N}_rate_{rate}_w_n_{w_n}_Ie_{Ie:.2f}/seed_{seed}'.format(N=N, rate=rate, Ie=Ie, seed=seed, w_n=w_n)
+path = 'cutoff_N_{N}_rate_{rate}_w_n_{w_n}_Ie_{Ie:.2f}/seed_{seed}'.format(N=N, rate=rate, Ie=Ie, seed=seed, w_n=w_n)
 
-fig = pl.figure("rastrs", figsize=(12, 9))
-matplotlib.rc('lines', linewidth=.75)
+fig = pl.figure("rastrs_cutoff", figsize=(12, 9))
+matplotlib.rc('lines', linewidth=0.75)
 matplotlib.rc('font', size=12.)
 
 gs = GridSpec(len(varParam), 2, width_ratios = [1, 4])
@@ -45,7 +45,7 @@ gs = GridSpec(len(varParam), 2, width_ratios = [1, 4])
 for idx, param in enumerate(varParam):
     (time, awsr) = np.load(path + '/awsr_w_p_{0:.2f}'.format(param) + '.npy')
 #     (time, awsr) = np.load(path + '/awsr_std_' + str(param) + '.npy')
-    awsr = gs_filter(awsr, 10)
+#    awsr = gs_filter(awsr, 1)
     time /= 1000.
 
     if idx == 0:
@@ -54,12 +54,13 @@ for idx, param in enumerate(varParam):
         yloc = pl.MaxNLocator(max_yticks)
         ax.yaxis.set_major_locator(yloc)
     else:
-        ax = pl.subplot(gs[idx, 1], sharey=ax)
+        ax = pl.subplot(gs[idx, 1], sharey=ax, sharex=ax)
         pl.setp(ax.get_yticklabels(), visible=False)
 
+    pl.setp(ax.get_xticklabels(), visible=False)
     ax.plot(time, awsr, color = 'k')
-    ax.set_xticks([])
 #    ax.set_title(r"$w_p={0}$".format(param))
+    ax.set_ylabel(r"$w_p={0}$".format(param))
 
     ax2 = pl.subplot(gs[idx, 0], sharey=ax)
 
@@ -68,6 +69,7 @@ for idx, param in enumerate(varParam):
     pl.setp(ax2.get_xticklabels(), visible=False)
     pl.setp(ax2.get_yticklabels(), visible=False)
 
+pl.setp(ax.get_xticklabels(), visible=True)
 
 #    if idx == 2:
 #        ax.set_ylabel("TSR", fontsize=22.)

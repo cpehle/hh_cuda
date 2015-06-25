@@ -11,7 +11,7 @@ import sys
 seed = 0
 if len(sys.argv) > 1:
     seed = sys.argv[1]
-Ie=5.24
+Ie=5.20
 
 #N = 2
 #rate = 185.0
@@ -26,14 +26,14 @@ Ie=5.24
 N = 30
 rate = 170.0
 w_n = 2.4
-varParam = np.arange(1.6, 2.15, 0.025)
+varParam = np.arange(1.65, 2.151, 0.05)
 
 #N = 100
 #rate = 180.0
 #w_n = 1.3
 #varParam = np.arange(2.0, 2.15, 0.01)
 
-path = 'N_{0}_rate_{1}_w_n_{2}_Ie_{3:.2f}/seed_{4}'.format(N, rate, w_n, Ie, seed)
+path = 'cutoff_N_{0}_rate_{1}_w_n_{2}_Ie_{3:.2f}/seed_{4}'.format(N, rate, w_n, Ie, seed)
 
 BinSize = 20.3
 
