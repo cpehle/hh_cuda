@@ -9,23 +9,13 @@ import csv
 from numpy.fft import fft
 
 seed = 0
-Ie=5.20
+Ie=5.0
 
-#N = 2
-#rate = 185.0
-#w_n = 5.4
-#varParam = arange(1.1, 2.6, 0.1)
-
-#N = 100
-#rate = 180.0
-#w_n = 1.3
-#varParam = np.arange(2.0, 2.15, 0.01)
-
-N = 30
+N = 1
 rate = 170.0
 w_n = 2.4
 #varParam = arange(1.6, 2.15, 0.025)
-varParam = arange(1.0, 2.151, 0.05)
+varParam = arange(1.0, 10.0, 1.0)
 
 path = 'N_{0}_rate_{1}_w_n_{2}_Ie_{3:.2f}/'.format(N, rate, w_n, Ie)
 
@@ -67,15 +57,16 @@ def calcQuality(Nstart, Nstop):
     egg = frange[nonzero(df)[0][1]] - frange[nonzero(df)[0][0]]
 
     return afmax*fmax/egg
+
+h = 0.5
+
 #bs = []
-#for i in range(22):
-#    bs.append(calcQuality(i*30, (i+1)*30))
-#
+#for i in range(10):
+#    bs.append(calcQuality(i*10, (i+1)*10))
 #semilogx(varParam, bs)
 
-#Nstart = 630
-#Nstop = 640
-#h = 0.5
+#Nstart = 0
+#Nstop = 200
 #for i in xrange(Nstart, Nstop):
 #    t, Vm = load(i)
 #    spec = abs(fft(Vm - mean(Vm)))
@@ -90,13 +81,14 @@ def calcQuality(Nstart, Nstop):
 #
 #frange = linspace(0, 0.5*1000/h, len(specMean))
 #
+#figure()
 #plot(frange, specMean)
 #xlabel("freq, Hz")
 #xlabel("|S|")
-#
+
 figure()
 t, Vm = load(0)
-plot(t, Vm)
+plot(t, Vm, lw=0.5)
 ylabel("Membrane potential, mV")
 xlabel("Time, ms")
 legend()

@@ -52,19 +52,29 @@
 # Ie=5.27
 
 # params for 30 neurs
-Nneur=30
-sim_time=200000.
-h=0.1
+# Nneur=30
+# sim_time=100000.
+# h=0.1
+# rate=170.0
+# w_n=2.4
+# w_p1=1.0
+# w_p2=2.2
+# w_p_nbund=24
+# seed_nbund=1
+# seed=0
+
+Nneur=1
 rate=170.0
 w_n=2.4
-w_p1=1.0
-w_p2=2.2
-w_p_nbund=24
-seed_nbund=1
+sim_time=10000.
+h=0.01
+w_p1=100.0
+w_p2=300.0
+w_p_nbund=2
+seed_nbund=10
 seed=0
 
-# Ie=5.25
-for Ie in `LANG=en_US.UTF-8 seq 5.2 0.04 5.40`; do
+for Ie in `LANG=en_US.UTF-8 seq 5.0 0.04 5.0`; do
   echo $Ie
   par_fname=nn_params_$Nneur.csv
   let "Ntotal = Nneur*w_p_nbund*seed_nbund"
@@ -75,7 +85,7 @@ for Ie in `LANG=en_US.UTF-8 seq 5.2 0.04 5.40`; do
       mkdir $fname/seed\_$j
   done
   head=`git log -1 --format="%h"`
-  r_str="./hh-cuda-$head $sim_time $h $Ntotal $w_p_nbund $Nneur $fname $seed $rate $w_p1 $w_p2 $w_n $par_fname $Ie 0"
+  r_str="./hh-cuda-$head $sim_time $h $Ntotal $w_p_nbund $Nneur $fname $seed $rate $w_p1 $w_p2 $w_n $par_fname $Ie 1"
   echo $r_str > $fname/params
   $r_str 2> $fname/times
 done

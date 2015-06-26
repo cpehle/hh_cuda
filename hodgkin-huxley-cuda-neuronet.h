@@ -11,12 +11,12 @@
 #include <curand_kernel.h>
 #include <iostream>
 
-#define CUDA_CHECK_RETURN(value) {											\
-	cudaError_t _m_cudaStat = value;										\
-	if (_m_cudaStat != cudaSuccess) {										\
-		fprintf(stderr, "Error %s at line %d in file %s\n",					\
-				cudaGetErrorString(_m_cudaStat), __LINE__, __FILE__);		\
-		exit(1);															\
+#define CUDA_CHECK_RETURN(value) {							\
+	cudaError_t _m_cudaStat = value;						\
+	if (_m_cudaStat != cudaSuccess) {						\
+		fprintf(stderr, "Error %s at line %d in file %s\n",			\
+				cudaGetErrorString(_m_cudaStat), __LINE__, __FILE__);	\
+		exit(1);								\
 	} }
 
 #define NEUR_BLOCK_SIZE 128
@@ -28,13 +28,13 @@ __constant__ float g_Na  = 120.0f; // nS
 __constant__ float g_K   = 36.0f;
 __constant__ float g_L   = .3f;
 __constant__ float E_K   = -77.0f;
-__constant__ float E_Na  = 55.0f;
-//__constant__ float E_Na  = 50.0f;
+//__constant__ float E_Na  = 55.0f;
+__constant__ float E_Na  = 50.0f;
 __constant__ float E_L   = -54.4f;
 __constant__ float V_peak = 18.0f;
 __constant__ float tau_cor = 2.0f;
-__constant__ int recInt_dev = 5;
-int recInt = 5;
+__constant__ int recInt_dev = 50;
+int recInt = 50;
 
 
 int T_sim_partial = 100000; // in time frames
@@ -50,6 +50,7 @@ int time_part_syn;
 // interval of saving results to file,
 // if greater then fragmentation becomes less,
 // but more RAM is used
+// in frames
 int SaveIntervalTIdx = 1000000;
 
 float tau_psc = 0.2f;
