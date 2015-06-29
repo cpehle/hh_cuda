@@ -108,7 +108,6 @@ __global__ void integrate_neurons(
 		int Nneur, int t, float h, float* D, float* Inoise, curandState* state, float* Vrec){
 		int n = blockIdx.x*blockDim.x + threadIdx.x;
 		if (n < Nneur){
-			float Inoise_ = Inoise[n];
 
 			I_psn[n]  = (y_psn[n]*h + I_psn[n])*exp_psc;
 			y_psn[n] *= exp_psc;
@@ -127,48 +126,68 @@ __global__ void integrate_neurons(
 			float n1, n2, n3, n4;
 			float m1, m2, m3, m4;
 			float h1, h2, h3, h4;
+			float Inoise_;
+			float ns1, ns2, ns3, ns4;
+
+			float dNoise = sqrtf(2.0f*h*D[n])*curand_normal(&state[n]);
+
 			V_mem = V_m[n];
 			n_channel = n_ch[n];
 			m_channel = m_ch[n];
 			h_channel = h_ch[n];
-			v1 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], I_syn_last[n] + Inoise_, I_e[n], h);
+			Inoise_ = Inoise[n];
+			v1 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], I_syn_last[n] + Inoise[n], I_e[n], h);
 			n1 = hh_n_ch(V_m[n], n_ch[n], h);
 			m1 = hh_m_ch(V_m[n], m_ch[n], h);
 			h1 = hh_h_ch(V_m[n], h_ch[n], h);
+			ns1 = (-Inoise[n]*h + dNoise)/tau_cor;
 			V_m[n] = V_mem + v1/2.0f;
 			n_ch[n] = n_channel + n1/2.0f;
 			m_ch[n] = m_channel + m1/2.0f;
 			h_ch[n] = h_channel + h1/2.0f;
+			Inoise[n] = Inoise_ + ns1/2.0f;
 
-			Inoise_ += (-Inoise[n]*h + sqrtf(h*D[n])*curand_normal(&state[n]))/tau_cor;
-			v2 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], (I_syn[n] + I_psn[n] + I_syn_last[n])/2.0f + Inoise_ , I_e[n], h);
+			v2 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], (I_syn[n] + I_psn[n] + I_syn_last[n])/2.0f + Inoise[n] , I_e[n], h);
 			n2 = hh_n_ch(V_m[n], n_ch[n], h);
 			m2 = hh_m_ch(V_m[n], m_ch[n], h);
 			h2 = hh_h_ch(V_m[n], h_ch[n], h);
+			ns2 = (-Inoise[n]*h + dNoise)/tau_cor;
 			V_m[n] = V_mem + v2/2.0f;
 			n_ch[n] = n_channel + n2/2.0f;
 			m_ch[n] = m_channel + m2/2.0f;
 			h_ch[n] = h_channel + h2/2.0f;
+			Inoise[n] = Inoise_ + ns2/2.0f;
 
-			Inoise_ += (-Inoise[n]*h + sqrtf(h*D[n])*curand_normal(&state[n]))/tau_cor;
-			v3 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], (I_syn[n] + I_psn[n] + I_syn_last[n])/2.0f + Inoise_, I_e[n], h);
+
+			v3 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], (I_syn[n] + I_psn[n] + I_syn_last[n])/2.0f + Inoise[n], I_e[n], h);
 			n3 = hh_n_ch(V_m[n], n_ch[n], h);
 			m3 = hh_m_ch(V_m[n], m_ch[n], h);
 			h3 = hh_h_ch(V_m[n], h_ch[n], h);
+			ns3 = (-Inoise[n]*h + dNoise)/tau_cor;
 			V_m[n] = V_mem + v3;
 			n_ch[n] = n_channel + n3;
 			m_ch[n] = m_channel + m3;
 			h_ch[n] = h_channel + h3;
+			Inoise[n] = Inoise_ + ns3;
 
-			Inoise_ += (-Inoise[n]*h + sqrtf(2.0*h*D[n])*curand_normal(&state[n]))/tau_cor;
-			v4 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], I_syn[n] + I_psn[n] + Inoise_, I_e[n], h);
+
+			v4 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], I_syn[n] + I_psn[n] + Inoise[n], I_e[n], h);
 			n4 = hh_n_ch(V_m[n], n_ch[n], h);
 			m4 = hh_m_ch(V_m[n], m_ch[n], h);
 			h4 = hh_h_ch(V_m[n], h_ch[n], h);
+			ns4 = (-Inoise[n]*h + dNoise)/tau_cor;
+
 			V_m[n] = V_mem + (v1 + 2.0f*v2 + 2.0f*v3 + v4)/6.0f;
 			n_ch[n] = n_channel + (n1 + 2.0f*n2 + 2.0f*n3 + n4)/6.0f;
 			m_ch[n] = m_channel + (m1 + 2.0f*m2 + 2.0f*m3 + m4)/6.0f;
 			h_ch[n] = h_channel + (h1 + 2.0f*h2 + 2.0f*h3 + h4)/6.0f;
+			Inoise[n] = Inoise_ + (ns1 + 2.0f*(ns2 + ns3) + ns4)/6.0f;
+
+//			V_m[n] = V_mem + v1;
+//			n_ch[n] = n_channel + n1;
+//			m_ch[n] = m_channel + m1;
+//			h_ch[n] = h_channel + h1;
+//			Inoise[n] = Inoise_ + ns1;
 
 			// checking if there's spike on neuron
 			if (V_m[n] > V_peak && V_mem > V_m[n] && V_m_last[n] <= V_mem){
@@ -177,7 +196,6 @@ __global__ void integrate_neurons(
 			}
 			V_m_last[n] = V_mem;
 			I_syn_last[n] = I_syn[n] + I_psn[n];
-			Inoise[n] = Inoise_;
 #ifdef OSCILL_SAVE
 			if (t % recInt_dev == 0){
 				Vrec[Nneur*(t % T_sim_part_dev/recInt_dev) + n] = V_m[n];
@@ -343,11 +361,11 @@ void swap_spikes(){
 	for (int n = 0; n < Nneur; n++){
 		min_spike_nums_syn[n] = INT_MAX;
 	}
-//	for (int s = 0; s < Ncon; s++){
-//		if (num_spikes_syn[s] < min_spike_nums_syn[pre_conns[s]]){
-//			min_spike_nums_syn[pre_conns[s]] = num_spikes_syn[s];
-//		}
-//	}
+	for (int s = 0; s < Ncon; s++){
+		if (num_spikes_syn[s] < min_spike_nums_syn[pre_conns[s]]){
+			min_spike_nums_syn[pre_conns[s]] = num_spikes_syn[s];
+		}
+	}
 	// В случае если у нейрона не было никаких исходящих связей, то минимальное количество
 	// Спйков которые обработли его исходящие синапсы будет равна INT_MAX, а это неверно
 	// Поэтома надо насильно поставить 0, для этого тут и эта конструкция
@@ -364,23 +382,26 @@ void swap_spikes(){
 		bund_idx = w_p_bund_neur/BUND_SZ;
 		neur = w_p_bund_neur % BUND_SZ;
 		idx = NUM_BUND*w_p_bund_idx + bund_idx;
-		for (int sp_n = 0; sp_n < min_spike_nums_syn[n]; sp_n++){
+//		for (int sp_n = 0; sp_n < min_spike_nums_syn[n]; sp_n++){
+		for (int sp_n = 0; sp_n < num_spikes_neur[n]; sp_n++){
 			res_senders[W_P_NUM_BUND*NUM_BUND*num_spk_in_bund[idx] + idx] = neur;
 			res_times[W_P_NUM_BUND*NUM_BUND*num_spk_in_bund[idx] + idx] = spike_times[Nneur*sp_n + n]*h;
 			num_spk_in_bund[idx]++;
 		}
 
-		for (int sp_n = min_spike_nums_syn[n]; sp_n < num_spikes_neur[n]; sp_n++){
-			printf("min_spk: %i\n", min_spike_nums_syn[n]);
-//			printf("sp: %i min_spk: %i n: %i\n", sp_n, min_spike_nums_syn[n], n);
+//		for (int sp_n = min_spike_nums_syn[n]; sp_n < num_spikes_neur[n]; sp_n++){
+		for (int sp_n = num_spikes_neur[n]; sp_n < num_spikes_neur[n]; sp_n++){
 			spike_times_temp[Nneur*(sp_n - min_spike_nums_syn[n]) + n] = spike_times[Nneur*sp_n + n];
 		}
-		num_spikes_neur[n] -= min_spike_nums_syn[n];
+		// @TODO
+		// В случае если считаем для несвязанный нейронов нужно убрать это
+//		num_spikes_neur[n] -= min_spike_nums_syn[n];
+		num_spikes_neur[n] = 0;
 	}
 
-//	for (int s = 0; s < Ncon; s++){
-//		num_spikes_syn[s] -= min_spike_nums_syn[pre_conns[s]];
-//	}
+	for (int s = 0; s < Ncon; s++){
+		num_spikes_syn[s] -= min_spike_nums_syn[pre_conns[s]];
+	}
 
 	delete[] spike_times;
 	delete[] min_spike_nums_syn;

@@ -66,15 +66,15 @@
 Nneur=1
 rate=170.0
 w_n=2.4
-sim_time=10000.
+sim_time=10000
 h=0.01
-w_p1=100.0
-w_p2=300.0
-w_p_nbund=2
-seed_nbund=10
+w_p1=1.0
+w_p2=61.0
+w_p_nbund=12
+seed_nbund=200
 seed=0
 
-for Ie in `LANG=en_US.UTF-8 seq 5.0 0.04 5.0`; do
+for Ie in `LANG=en_US.UTF-8 seq 6.0 0.04 6.0`; do
   echo $Ie
   par_fname=nn_params_$Nneur.csv
   let "Ntotal = Nneur*w_p_nbund*seed_nbund"

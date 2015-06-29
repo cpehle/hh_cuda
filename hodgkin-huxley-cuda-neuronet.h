@@ -28,8 +28,11 @@ __constant__ float g_Na  = 120.0f; // nS
 __constant__ float g_K   = 36.0f;
 __constant__ float g_L   = .3f;
 __constant__ float E_K   = -77.0f;
+
+// @TODO для нейронов в бистабильном режиме E_Na = 50.
 //__constant__ float E_Na  = 55.0f;
 __constant__ float E_Na  = 50.0f;
+
 __constant__ float E_L   = -54.4f;
 __constant__ float V_peak = 18.0f;
 __constant__ float tau_cor = 2.0f;
