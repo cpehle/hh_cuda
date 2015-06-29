@@ -204,8 +204,8 @@ __global__ void integrate_neurons(
 			V_m_last[n] = V_mem;
 			I_syn_last[n] = I_syn[n] + I_psn[n];
 #ifdef OSCILL_SAVE
-			if (t % recInt_dev == 0){
-				Vrec[Nneur*(t % T_sim_part_dev/recInt_dev) + n] = V_m[n];
+			if (t % recInt == 0){
+				Vrec[Nneur*(t % T_sim_partial/recInt) + n] = V_m[n];
 			}
 #endif
 		}

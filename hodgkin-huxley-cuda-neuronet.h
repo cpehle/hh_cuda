@@ -23,25 +23,20 @@
 #define SYN_BLOCK_SIZE 512
 
 // neuron parameters
-__constant__ float Cm    = 1.0f; //  inverse of membrane capacity, 1/pF
-__constant__ float g_Na  = 120.0f; // nS
-__constant__ float g_K   = 36.0f;
-__constant__ float g_L   = .3f;
-__constant__ float E_K   = -77.0f;
-
+#define Cm    1.0f //  inverse of membrane capacity, 1/pF
+#define g_Na  120.0f // nS
+#define g_K   36.0f
+#define g_L   .3f
+#define E_K   -77.0f
 // @TODO для нейронов в бистабильном режиме E_Na = 55.
-__constant__ float E_Na  = 55.0f;
-//__constant__ float E_Na  = 50.0f;
+#define E_Na  55.0f
+//#defineE_Na 50.0f
+#define E_L   -54.4f
+#define V_peak 18.0f
 
-__constant__ float E_L   = -54.4f;
-__constant__ float V_peak = 18.0f;
-__constant__ float tau_cor = 2.0f;
-__constant__ int recInt_dev = 25;
-int recInt = 25;
-
-
-int T_sim_partial = 100000; // in time frames
-__constant__ unsigned int T_sim_part_dev = 100000; // in time frames
+#define tau_cor 2.0f
+#define recInt 5
+#define T_sim_partial 100000 // in time frames
 
 int time_part_syn;
 // maximum part of simulating time for which is allocated memory
