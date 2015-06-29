@@ -115,9 +115,9 @@ def calcQuality(D):
 #legend()
 
 figure()
-t, Vm = load(0)
+t, Vm = load(300)
 plot(t, Vm, lw=0.5)
-xlim([0, 1000])
+#xlim([0, 1000])
 ylim([-80, 40])
 
 ylabel("Membrane potential, mV")

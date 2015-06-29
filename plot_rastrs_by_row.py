@@ -14,15 +14,15 @@ from scipy.ndimage.filters import gaussian_filter as gs_filter
 seed=0
 Ie=5.27
 
-rate = 185.0
-N=2
-w_n=5.4
-varParam = np.arange(1.5, 3.6, 0.2)
+#rate = 185.0
+#N=2
+#w_n=5.4
+#varParam = np.arange(1.5, 3.6, 0.2)
 
-#N = 100
-#rate = 180.0
-#w_n = 1.3
-#varParam = np.arange(2.0, 2.15, 0.02)
+N = 100
+rate = 180.0
+w_n = 1.3
+varParam = np.arange(2.0, 2.15, 0.02)
 
 #N = 10
 #rate = 180.0
@@ -32,9 +32,9 @@ varParam = np.arange(1.5, 3.6, 0.2)
 #N = 30
 #rate = 170.0
 #w_n = 2.4
-#varParam = np.arange(1.0, 2.151, 0.1)
+#varParam = np.arange(1.85, 2.31, 0.025)
 
-path = 'N_{N}_rate_{rate}_w_n_{w_n}_Ie_{Ie:.2f}/seed_{seed}'.format(N=N, rate=rate, Ie=Ie, seed=seed, w_n=w_n)
+path = '/home/pavel/projects/hh_cuda/N_{N}_rate_{rate}_w_n_{w_n}_Ie_{Ie:.2f}/seed_{seed}'.format(N=N, rate=rate, Ie=Ie, seed=seed, w_n=w_n)
 
 fig = pl.figure("rastrs", figsize=(12, 9))
 matplotlib.rc('lines', linewidth=0.75)
@@ -43,9 +43,9 @@ matplotlib.rc('font', size=12.)
 gs = GridSpec(len(varParam), 2, width_ratios = [1, 4])
 
 for idx, param in enumerate(varParam):
-    (time, awsr) = np.load(path + '/awsr_w_p_{0:.2f}'.format(param) + '.npy')
+    (time, awsr) = np.load(path + '/awsr_w_p_{0:.3f}'.format(param) + '.npy')
 #     (time, awsr) = np.load(path + '/awsr_std_' + str(param) + '.npy')
-    awsr = gs_filter(awsr, 1)
+#    awsr = gs_filter(awsr, 1)
     time /= 1000.
 
     if idx == 0:
@@ -60,7 +60,8 @@ for idx, param in enumerate(varParam):
     pl.setp(ax.get_xticklabels(), visible=False)
     ax.plot(time, awsr, color = 'k')
 #    ax.set_title(r"$w_p={0}$".format(param))
-    ax.set_ylabel(r"$w_p={0}$".format(param))
+#    ax.set_ylabel(r"$w_p={0}$".format(param))
+    ax.set_ylabel(str(param))
 
     ax2 = pl.subplot(gs[idx, 0], sharey=ax)
 

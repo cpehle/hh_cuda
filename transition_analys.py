@@ -20,10 +20,9 @@ def analys_trans(fname, maxSr=15, srHstBins=10):
     firstMaxIdx = np.argmax(srHst[:srMidpntIdx])
     secondMaxIdx = srMidpntIdx + np.argmax(srHst[srMidpntIdx:])
     srMidpnt = np.argmin(srHst[firstMaxIdx:secondMaxIdx])*srHstBinSize
-#     srMidpnt = (firstMaxIdx + secondMaxIdx)/2
-#    print(srMidpnt)
-    srMidpnt = 3.68
-
+#    srMidpnt = (firstMaxIdx + secondMaxIdx)/2
+    print(srMidpnt)
+#    srMidpnt = 11.
     thr = np.array(sr >= srMidpnt, dtype='int32')
     df = np.diff(thr)
     indices_up = pl.find(df == 1)

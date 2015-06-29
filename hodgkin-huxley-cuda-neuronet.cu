@@ -118,13 +118,13 @@ __global__ void integrate_neurons(
 
 			// if where is poisson impulse on neuron
 			while (psn_time[n] == t){
-//				y_psn[n] += exp_w_p[n];
+				y_psn[n] += exp_w_p[n];
 
-				if (curand_uniform(&state[n]) >= 0.5f){
-					y_psn[n] += exp_w_p[n];
-				} else {
-					y_psn[n] -= exp_w_p[n];
-				}
+//				if (curand_uniform(&state[n]) >= 0.5f){
+//					y_psn[n] += exp_w_p[n];
+//				} else {
+//					y_psn[n] -= exp_w_p[n];
+//				}
 
 				psn_time[n] -= (1000.0f/(rate*h))*logf(get_random(psn_seed + n));
 			}
@@ -136,8 +136,7 @@ __global__ void integrate_neurons(
 			float Inoise_;
 			float ns1, ns2, ns3, ns4;
 
-//			float dNoise = sqrtf(2.0f*h*D[n])*curand_normal(&state[n]);
-			float dNoise = 0.0f;
+			float dNoise = sqrtf(2.0f*h*D[n])*curand_normal(&state[n]);
 
 			V_mem = V_m[n];
 			n_channel = n_ch[n];

@@ -37,28 +37,21 @@ def loadIsi(w_p):
         tm = []
         path = 'N_{N}_rate_{rate}_w_n_{w_n}_Ie_{Ie:.2f}/seed_{seed}'.format(N=N, Ie=Ie, rate=rate, seed=seed, w_n=w_n)
         fname = path + "/spkTimes_w_p_{0:.3f}.npy".format(w_p)
-        if not os.path.exists(fname):
-            f = open(path+"/w_p_{0:.3f}".format(w_p), "r")
-            rdr = csv.reader(f,delimiter="\t")
-            for l in rdr:
-                snd.append(l[0])
-                tm.append(l[1])
-            f.close()
-            tm = np.array(tm, dtype="float32")
-            snd = np.array(snd, dtype="float32")
+        f = open(path+"/w_p_{0:.3f}".format(w_p), "r")
+        rdr = csv.reader(f,delimiter="\t")
+        for l in rdr:
+            snd.append(l[0])
+            tm.append(l[1])
+        f.close()
+        tm = np.array(tm, dtype="float32")
+        snd = np.array(snd, dtype="float32")
 
-            times = [[]]*N
-            isi = [[]]*N
-            for i in xrange(N):
-                times[i] = tm[np.nonzero(snd == i)]
-                isi[i] = np.diff(times[i])
-            del snd, tm
-            np.save(fname, times)
-        else:
-            isi = [[]]*N
-            times = np.load(fname)
-            for i in xrange(N):
-                isi[i] = np.diff(times[i])
+        times = [[]]*N
+        isi = [[]]*N
+        for i in xrange(N):
+            times[i] = tm[np.nonzero(snd == i)]
+            isi[i] = np.diff(times[i])
+        del snd, tm
 
         for i in isi:
             isiAll.extend(i)
