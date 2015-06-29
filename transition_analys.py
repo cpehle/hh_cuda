@@ -12,7 +12,7 @@ def analys_trans(fname, maxSr=15, srHstBins=10):
     srHstBinSize = maxSr/srHstBins
 
     (time, sr) = np.load(fname)
-    sr = gs_filter(sr, 10)
+    sr = gs_filter(sr, 1)
 
     srHst = np.histogram(sr, bins=srHstBins, range=(0, maxSr))[0]
 
@@ -22,6 +22,7 @@ def analys_trans(fname, maxSr=15, srHstBins=10):
     srMidpnt = np.argmin(srHst[firstMaxIdx:secondMaxIdx])*srHstBinSize
 #     srMidpnt = (firstMaxIdx + secondMaxIdx)/2
 #    print(srMidpnt)
+    srMidpnt = 3.68
 
     thr = np.array(sr >= srMidpnt, dtype='int32')
     df = np.diff(thr)

@@ -30,14 +30,14 @@ __constant__ float g_L   = .3f;
 __constant__ float E_K   = -77.0f;
 
 // @TODO для нейронов в бистабильном режиме E_Na = 50.
-//__constant__ float E_Na  = 55.0f;
-__constant__ float E_Na  = 50.0f;
+__constant__ float E_Na  = 55.0f;
+//__constant__ float E_Na  = 50.0f;
 
 __constant__ float E_L   = -54.4f;
 __constant__ float V_peak = 18.0f;
 __constant__ float tau_cor = 2.0f;
-__constant__ int recInt_dev = 50;
-int recInt = 50;
+__constant__ int recInt_dev = 10;
+int recInt = 10;
 
 
 int T_sim_partial = 100000; // in time frames

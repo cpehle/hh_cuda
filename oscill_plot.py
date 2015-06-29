@@ -9,14 +9,13 @@ import csv
 from numpy.fft import fft
 from scipy.ndimage.filters import gaussian_filter as gs_filter
 
-seed = 0
-Ie=6.0
+Ie=5.27
 
-N = 1
-rate = 170.0
-w_n = 2.4
-#varParam = arange(1.6, 2.15, 0.025)
-varParam = arange(1.0, 61.0, 5.0)
+N = 2
+rate = 185.0
+w_n = 5.4
+varParam = np.arange(0.5, 2.6, 0.1)
+
 h = 0.5
 path = 'N_{0}_rate_{1}_w_n_{2}_Ie_{3:.2f}/'.format(N, rate, w_n, Ie)
 
@@ -76,12 +75,12 @@ def calcQuality(D):
 
     return qual
 #%%
-bs = zeros_like(varParam)
-
-for idx, D in enumerate(varParam):
-    bs[idx]  = calcQuality(D)
-figure("q factor")
-semilogx(varParam, bs)
+#bs = zeros_like(varParam)
+#
+#for idx, D in enumerate(varParam):
+#    bs[idx]  = calcQuality(D)
+#figure("q factor")
+#semilogx(varParam, bs)
 
 #D = 21.
 #D1 = 1.
@@ -115,12 +114,12 @@ semilogx(varParam, bs)
 #xlim([10, 200])
 #legend()
 
-#figure()
-#t, Vm = load(800)
-#plot(t, Vm, lw=0.5)
-#xlim([0, 1000])
-#ylim([-80, 40])
-#
-#ylabel("Membrane potential, mV")
-#xlabel("Time, ms")
-#legend()
+figure()
+t, Vm = load(0)
+plot(t, Vm, lw=0.5)
+xlim([0, 1000])
+ylim([-80, 40])
+
+ylabel("Membrane potential, mV")
+xlabel("Time, ms")
+legend()

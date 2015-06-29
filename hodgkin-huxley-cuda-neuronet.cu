@@ -118,7 +118,14 @@ __global__ void integrate_neurons(
 
 			// if where is poisson impulse on neuron
 			while (psn_time[n] == t){
-				y_psn[n] += exp_w_p[n];
+//				y_psn[n] += exp_w_p[n];
+
+				if (curand_uniform(&state[n]) >= 0.5f){
+					y_psn[n] += exp_w_p[n];
+				} else {
+					y_psn[n] -= exp_w_p[n];
+				}
+
 				psn_time[n] -= (1000.0f/(rate*h))*logf(get_random(psn_seed + n));
 			}
 			float V_mem, n_channel, m_channel, h_channel;
@@ -129,7 +136,8 @@ __global__ void integrate_neurons(
 			float Inoise_;
 			float ns1, ns2, ns3, ns4;
 
-			float dNoise = sqrtf(2.0f*h*D[n])*curand_normal(&state[n]);
+//			float dNoise = sqrtf(2.0f*h*D[n])*curand_normal(&state[n]);
+			float dNoise = 0.0f;
 
 			V_mem = V_m[n];
 			n_channel = n_ch[n];
@@ -382,21 +390,21 @@ void swap_spikes(){
 		bund_idx = w_p_bund_neur/BUND_SZ;
 		neur = w_p_bund_neur % BUND_SZ;
 		idx = NUM_BUND*w_p_bund_idx + bund_idx;
-//		for (int sp_n = 0; sp_n < min_spike_nums_syn[n]; sp_n++){
-		for (int sp_n = 0; sp_n < num_spikes_neur[n]; sp_n++){
+		for (int sp_n = 0; sp_n < min_spike_nums_syn[n]; sp_n++){
+//		for (int sp_n = 0; sp_n < num_spikes_neur[n]; sp_n++){
 			res_senders[W_P_NUM_BUND*NUM_BUND*num_spk_in_bund[idx] + idx] = neur;
 			res_times[W_P_NUM_BUND*NUM_BUND*num_spk_in_bund[idx] + idx] = spike_times[Nneur*sp_n + n]*h;
 			num_spk_in_bund[idx]++;
 		}
 
-//		for (int sp_n = min_spike_nums_syn[n]; sp_n < num_spikes_neur[n]; sp_n++){
-		for (int sp_n = num_spikes_neur[n]; sp_n < num_spikes_neur[n]; sp_n++){
+		for (int sp_n = min_spike_nums_syn[n]; sp_n < num_spikes_neur[n]; sp_n++){
+//		for (int sp_n = num_spikes_neur[n]; sp_n < num_spikes_neur[n]; sp_n++){
 			spike_times_temp[Nneur*(sp_n - min_spike_nums_syn[n]) + n] = spike_times[Nneur*sp_n + n];
 		}
 		// @TODO
 		// В случае если считаем для несвязанный нейронов нужно убрать это
-//		num_spikes_neur[n] -= min_spike_nums_syn[n];
-		num_spikes_neur[n] = 0;
+		num_spikes_neur[n] -= min_spike_nums_syn[n];
+//		num_spikes_neur[n] = 0;
 	}
 
 	for (int s = 0; s < Ncon; s++){

@@ -11,22 +11,22 @@ import sys
 seed = 0
 if len(sys.argv) > 1:
     seed = sys.argv[1]
-Ie=5.20
+Ie=5.27
 
-#N = 2
-#rate = 185.0
-#w_n = 5.4
-#varParam = np.arange(0.5, 2.6, 0.1)
+N = 2
+rate = 185.0
+w_n = 5.4
+varParam = np.arange(1.5, 3.6, 0.1)
 
 #N = 10
 #rate = 180.0
 #w_n = 5.0
 #varParam = np.arange(1.0, 5.0, 0.1)
 
-N = 30
-rate = 170.0
-w_n = 2.4
-varParam = np.arange(1.0, 2.151, 0.05)
+#N = 30
+#rate = 170.0
+#w_n = 2.4
+#varParam = np.arange(1.0, 2.151, 0.05)
 
 #N = 100
 #rate = 180.0
@@ -35,7 +35,7 @@ varParam = np.arange(1.0, 2.151, 0.05)
 
 path = 'N_{0}_rate_{1}_w_n_{2}_Ie_{3:.2f}/seed_{4}'.format(N, rate, w_n, Ie, seed)
 
-BinSize = 20.3
+BinSize = 3*20.3
 
 for idx, w_p in enumerate(varParam):
     times = []

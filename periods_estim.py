@@ -19,15 +19,25 @@ from transition_analys import analys_trans
 
 # path = 'res/awsr_std_{0}.npy'
 
-maxSr = 100
-srHstBins = 100
+#maxSr = 100
+maxSr = 6.6
+srHstBins = 20
 timeBin = 20.3/1000. # in sec
-varParam = np.linspace(2.0, 2.13, 7)
+seed=0
+Ie=5.27
 
-rate = 180.0
-N = 100
-w_n = 1.3
-path = 'N_{0}_rate_{1}_w_n_{2}/'.format(N, rate, w_n)
+#rate = 180.0
+#N = 100
+#w_n = 1.3
+#varParam = np.linspace(2.0, 2.13, 7)
+
+
+rate = 185.0
+N=2
+w_n=5.4
+varParam = np.arange(1.5, 3.6, 0.1)
+
+path = 'N_{N}_rate_{rate}_w_n_{w_n}_Ie_{Ie:.2f}/'.format(N=N, rate=rate, Ie=Ie, w_n=w_n)
 
 MeanPeriods = np.zeros(np.shape(varParam))
 MeanTimesUp = np.zeros(np.shape(varParam))
