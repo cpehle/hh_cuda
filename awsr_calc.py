@@ -8,10 +8,12 @@ import csv
 import numpy as np
 import sys
 
-seed = 0
+seedIdx = 0
 if len(sys.argv) > 1:
-    seed = sys.argv[1]
-Ie=5.27
+    seedIdx = sys.argv[1]
+
+BinSize = 20.3
+Ie=5.20
 
 #N = 2
 #rate = 185.0
@@ -23,25 +25,25 @@ Ie=5.27
 #w_n = 5.0
 #varParam = np.arange(1.0, 5.0, 0.1)
 
-#N = 30
-#rate = 170.0
-#w_n = 2.4
-#varParam = np.arange(1.85, 2.31, 0.025)
+N = 30
+rate = 170.0
+w_n = 2.4
+varParam = np.arange(1.85, 2.31, 0.025)
 
-N = 100
-rate = 180.0
-w_n = 1.3
-varParam = np.arange(2.0, 2.15, 0.01)
+#N = 100
+#rate = 185.0
+#w_n = 1.3
+#varParam = np.arange(2.0, 2.15, 0.01)
 
-path = '/home/pavel/projects/hh_cuda/N_{0}_rate_{1}_w_n_{2}_Ie_{3:.2f}/seed_{4}'.format(N, rate, w_n, Ie, seed)
+res_path = '/media/ssd/bistability/'
 
-BinSize = 20.3
+path = res_path + 'N_{}_rate_{}_w_n_{}_Ie_{:.2f}/seed_{}'.format(N, rate, w_n, Ie, seedIdx)
 
 for idx, w_p in enumerate(varParam):
     times = []
     print w_p
-    f = open('{0}/w_p_{1:.2f}'.format(path, w_p), "r")
-    rdr = csv.reader(f,delimiter="\t")
+    f = open('{}/w_p_{:.3f}'.format(path, w_p), "r")
+    rdr = csv.reader(f, delimiter="\t")
     for l in rdr:
         times.append(l[1])
     f.close()
@@ -49,4 +51,4 @@ for idx, w_p in enumerate(varParam):
     Tmax = np.max(times)
     rhist = np.histogram(times,  bins=Tmax/BinSize, range=(0, Tmax))
     time, awsr = rhist[1][:-1], rhist[0]
-    np.save(path + '/awsr_w_p_{0:.3f}.npy'.format(float(w_p)), (time, awsr))
+    np.save(path + '/awsr_w_p_{:.3f}.npy'.format(float(w_p)), (time, awsr))

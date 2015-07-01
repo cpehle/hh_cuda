@@ -16,24 +16,26 @@ maxSr = 100
 srHstBins = 20
 timeBin = 20.3/1000. # in sec
 
-Ie=5.27
+Ie=5.20
 
-rate = 180.0
-N = 100
-w_n = 1.3
-varParam = np.arange(2.0, 2.15, 0.02)
+#N = 100
+#rate = 180.0
+#w_n = 1.3
+#varParam = np.arange(2.0, 2.15, 0.02)
 
-#rate = 170.0
-#N = 30
-#w_n = 2.4
-#varParam = np.arange(1.85, 2.31, 0.025)
+N = 30
+rate = 170.0
+w_n = 2.4
+varParam = np.arange(1.85, 2.31, 0.025)
 
-#rate = 185.0
 #N=2
+#rate = 185.0
 #w_n=5.4
 #varParam = np.arange(1.5, 3.6, 0.1)
 
-path = '/home/pavel/projects/hh_cuda/N_{N}_rate_{rate}_w_n_{w_n}_Ie_{Ie:.2f}/'.format(N=N, rate=rate, Ie=Ie, w_n=w_n)
+res_path = '/media/ssd/bistability/'
+
+path = res_path + 'N_{}_rate_{}_w_n_{}_Ie_{:.2f}/'.format(N, rate, w_n, Ie)
 
 MeanPeriods = np.zeros(np.shape(varParam))
 MeanTimesUp = np.zeros(np.shape(varParam))
@@ -47,8 +49,7 @@ for idx, var in enumerate(varParam):
     TimesUp = []
     TimesDown = []
     for seed in range(1):
-#         period, time_down, time_up = analys_trans(path.format(var), maxSr=maxSr, srHstBins=srHstBins)
-        period, time_down, time_up = analys_trans(path+"seed_{0}/awsr_w_p_{1:.3f}.npy".format(seed, var),
+        period, time_down, time_up = analys_trans(path+"seed_{}/awsr_w_p_{:.3f}.npy".format(seed, var),
                                                   maxSr=maxSr, srHstBins=srHstBins)
         Periods.extend(period)
         TimesDown.extend(time_down)

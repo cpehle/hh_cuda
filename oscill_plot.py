@@ -9,11 +9,11 @@ import csv
 from numpy.fft import fft
 from scipy.ndimage.filters import gaussian_filter as gs_filter
 
-Ie=5.27
+Ie=5.2
 
-N = 2
-rate = 185.0
-w_n = 5.4
+N = 30
+rate = 170.0
+w_n = 2.4
 varParam = np.arange(0.5, 2.6, 0.1)
 
 h = 0.5
@@ -115,7 +115,7 @@ def calcQuality(D):
 #legend()
 
 figure()
-t, Vm = load(300)
+t, Vm = load(0)
 plot(t, Vm, lw=0.5)
 #xlim([0, 1000])
 ylim([-80, 40])
