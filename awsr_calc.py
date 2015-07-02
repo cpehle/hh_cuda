@@ -26,9 +26,10 @@ Ie=5.20
 #varParam = np.arange(1.0, 5.0, 0.1)
 
 N = 30
-rate = 170.0
+rate = 175.0
 w_n = 2.4
-varParam = np.arange(1.85, 2.31, 0.025)
+#varParam = np.arange(1.85, 2.31, 0.025)
+varParam = np.arange(1.6, 2.21, 0.025)
 
 #N = 100
 #rate = 185.0

@@ -9,20 +9,21 @@ import csv
 from numpy.fft import fft
 from scipy.ndimage.filters import gaussian_filter as gs_filter
 
-Ie=5.2
+Ie=6.28
 
-N = 30
+N = 1
 rate = 170.0
-w_n = 2.4
-varParam = np.arange(0.5, 2.6, 0.1)
+w_n = 24.
+varParam = np.arange(1.0, 31.0, 10.)[:3]
 
-h = 0.5
-path = 'N_{0}_rate_{1}_w_n_{2}_Ie_{3:.2f}/'.format(N, rate, w_n, Ie)
+h = 0.25
+res_path = '/media/ssd/'
+path = res_path + 'N_{}_rate_{}_w_n_{}_Ie_{:.2f}/'.format(N, rate, w_n, Ie)
 
 def load(seed=0):
     t = []
     Vm = []
-    f = open(path+'N_{seed}_oscill.csv'.format(seed=seed), "r")
+    f = open(path+'N_{}_oscill.csv'.format(seed), "r")
     rdr = csv.reader(f,delimiter="\t")
     for l in rdr:
         t.append(l[0])
@@ -65,22 +66,22 @@ def calcQuality(D):
     st = frange[nonzero(df == 1)[0][0] + 1]
     stp = frange[nonzero(df == -1)[0][0] + 1]
 
-#    figure('spectras')
-#    hlines(afmax/2, st, stp)
-#    plot(frange, specMean, label=str(D))
-#    xlim((0, 200))
-#    legend()
+    figure('spectras')
+    hlines(afmax/2, st, stp)
+    plot(frange, specMean, label=str(D))
+    xlim((0, 200))
+    legend()
 
     qual = afmax*fmax/(stp - st)
 
     return qual
 #%%
-#bs = zeros_like(varParam)
-#
-#for idx, D in enumerate(varParam):
-#    bs[idx]  = calcQuality(D)
-#figure("q factor")
-#semilogx(varParam, bs)
+bs = zeros_like(varParam)
+
+for idx, D in enumerate(varParam):
+    bs[idx]  = calcQuality(D)
+figure("q factor")
+semilogx(varParam, bs)
 
 #D = 21.
 #D1 = 1.
@@ -113,13 +114,19 @@ def calcQuality(D):
 #xlabel("|S|")
 #xlim([10, 200])
 #legend()
+Num = 20
+fig, ax = subplots(Num, 1, sharex=True)
 
-figure()
-t, Vm = load(0)
-plot(t, Vm, lw=0.5)
+for i in xrange(Num):
+    t, Vm = load(i)
+    ax[i].plot(t, Vm, lw=0.5)
+    setp(ax[i].get_xticklabels(), visible=False)
+    max_yticks = 2
+    yloc = pl.MaxNLocator(max_yticks)
+    ax[i].yaxis.set_major_locator(yloc)
 #xlim([0, 1000])
-ylim([-80, 40])
+#ylim([-80, 40])
 
-ylabel("Membrane potential, mV")
-xlabel("Time, ms")
-legend()
+#ylabel("Membrane potential, mV")
+#xlabel("Time, ms")
+#legend()

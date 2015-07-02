@@ -4,7 +4,7 @@ import nest
 import numpy as np
 import sys
 
-Tsim = 1000.
+Tsim = 100000.
 h = 0.1
 I = 6.2645
 N = 2

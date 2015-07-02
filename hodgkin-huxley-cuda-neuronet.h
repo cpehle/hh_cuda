@@ -29,8 +29,8 @@
 #define g_L   .3f
 #define E_K   -77.0f
 // @TODO для нейронов в бистабильном режиме E_Na = 55.
-#define E_Na  55.0f
-//#defineE_Na 50.0f
+//#define E_Na  55.0f
+#define E_Na 50.0f
 #define E_L   -54.4f
 #define V_peak 18.0f
 

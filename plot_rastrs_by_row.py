@@ -30,9 +30,10 @@ Ie=5.20
 #varParam = np.arange(2.0, 3.0, 0.2)
 
 N = 30
-rate = 170.0
+rate = 175.0
 w_n = 2.4
-varParam = np.arange(1.85, 2.31, 0.05)
+#varParam = np.arange(1.85, 2.31, 0.05)
+varParam = np.arange(1.6, 2.21, 0.05)
 
 res_path = '/media/ssd/bistability/'
 

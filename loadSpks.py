@@ -10,12 +10,12 @@ import numpy as np
 import csv
 import os
 
-Ie=5.20
+Ie=5.24
 
 N = 30
-rate = 170.0
+rate = 175.0
 w_n = 2.4
-varParam = np.arange(1.85, 2.31, 0.025)
+varParam = np.arange(1.6, 2.21, 0.025)
 
 #N = 2
 #rate = 185.0
@@ -38,7 +38,7 @@ res_path = '/media/ssd/bistability/'
 def loadIsi(w_p):
     print w_p
     isiAll = []
-    for seedIdx in range(0, 1):
+    for seedIdx in range(0, 5):
         path = res_path + 'N_{}_rate_{}_w_n_{}_Ie_{:.2f}/seed_{}'.format(N, rate, w_n, Ie, seedIdx)
         f = open(path + "/w_p_{:.3f}".format(w_p), "r")
         rdr = csv.reader(f,delimiter="\t")
@@ -72,18 +72,18 @@ for w_p in varParam:
     isiStd.append(np.std(isi))
     isiMn.append(np.mean(isi))
 
-#    hs = histogram(isi, bins=100, range=(0, 30))
-#    isiHst = hs[0]
-#    Trange = hs[1][:-1]
-#    isiHst = gs_filter(isiHst, 1)
-#
-#    tmax = Trange[argmax(isiHst)]
-#    atmax = max(isiHst)
-#
-#    df=diff(array(isiHst > atmax/2, dtype='int'))
-#    st = Trange[nonzero(df == 1)[0][0]]
-#    stp = Trange[nonzero(df == -1)[0][0]]
-#    qual.append(atmax*tmax/(stp - st))
+    hs = histogram(isi, bins=100, range=(0, 30))
+    isiHst = hs[0]
+    Trange = hs[1][:-1]
+    isiHst = gs_filter(isiHst, 1)
+
+    tmax = Trange[argmax(isiHst)]
+    atmax = max(isiHst)
+
+    df=diff(array(isiHst > atmax/2, dtype='int'))
+    st = Trange[nonzero(df == 1)[0][0]]
+    stp = Trange[nonzero(df == -1)[0][0]]
+    qual.append(atmax*tmax/(stp - st))
 
 #    figure('isi spectras')
 #    plot(Trange, isiHst, label=str(w_p))
@@ -94,4 +94,5 @@ isiMn = np.array(isiMn)
 isiStd = np.array(isiStd)
 
 pl.figure("qual")
-pl.plot(varParam, isiStd/isiMn)
+pl.plot(varParam, isiStd/isiMn, label=str(Ie))
+pl.legend()
