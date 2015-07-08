@@ -13,7 +13,7 @@ if len(sys.argv) > 1:
     seedIdx = sys.argv[1]
 
 BinSize = 20.3
-Ie=5.20
+Ie=5.27
 
 #N = 2
 #rate = 185.0
@@ -26,17 +26,17 @@ Ie=5.20
 #varParam = np.arange(1.0, 5.0, 0.1)
 
 N = 30
-rate = 175.0
+rate = 170.0
 w_n = 2.4
-#varParam = np.arange(1.85, 2.31, 0.025)
-varParam = np.arange(1.6, 2.21, 0.025)
+varParam = np.arange(1.5, 2.5, 0.05)
+#varParam = np.arange(1.6, 2.1251, 0.025)
 
 #N = 100
 #rate = 185.0
 #w_n = 1.3
 #varParam = np.arange(2.0, 2.15, 0.01)
 
-res_path = '/media/ssd/bistability/'
+res_path = ''
 
 path = res_path + 'N_{}_rate_{}_w_n_{}_Ie_{:.2f}/seed_{}'.format(N, rate, w_n, Ie, seedIdx)
 

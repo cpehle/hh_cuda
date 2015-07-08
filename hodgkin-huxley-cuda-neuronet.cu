@@ -80,7 +80,7 @@ __global__ void init_noise(curandState* state, float* Inoise, float* D, unsigned
 	int neur = n % BundleSize;
 	if (n < Nneur){
 		curand_init(0, neur + seed, 0, &state[n]);
-		Inoise[n] += D[n]*curand_normal(&state[n]);
+		Inoise[n] += sqrt(D[n]/tau_cor)*curand_normal(&state[n]);
 	}
 }
 
@@ -137,6 +137,7 @@ __global__ void integrate_neurons(
 			float ns1, ns2, ns3, ns4;
 
 			float dNoise = sqrtf(2.0f*h*D[n])*curand_normal(&state[n]);
+//			Inoise[n] = sqrtf(h*D[n])*curand_normal(&state[n])/h;
 //			if (t*h > 614.0){
 //				dNoise = 0.0f;
 //			}
@@ -201,8 +202,10 @@ __global__ void integrate_neurons(
 
 			// checking if there's spike on neuron
 			if (V_m[n] > V_peak && V_mem > V_m[n] && V_m_last[n] <= V_mem){
-				spike_time[Nneur*num_spike_neur[n] + n] = t;
-				num_spike_neur[n]++;
+				if (t - spike_time[Nneur*(num_spike_neur[n] - 1) + n] > 5.0f/h || num_spike_neur[n] == 0){
+					spike_time[Nneur*num_spike_neur[n] + n] = t;
+					num_spike_neur[n]++;
+				}
 			}
 			V_m_last[n] = V_mem;
 			I_syn_last[n] = I_syn[n] + I_psn[n];
@@ -323,18 +326,18 @@ void init_neurs_from_file(){
 			int idx = W_P_BUND_SZ*bund + n;
 
 			// IV on limit cycle
-			V_ms[idx] = 32.9066f;
-			V_ms_last[idx] = 32.9065f;
-			n_chs[idx] = 0.574678f;
-			m_chs[idx] = 0.913177f;
-			h_chs[idx] = 0.223994f;
+//			V_ms[idx] = 32.9066f;
+//			V_ms_last[idx] = 32.9065f;
+//			n_chs[idx] = 0.574678f;
+//			m_chs[idx] = 0.913177f;
+//			h_chs[idx] = 0.223994f;
 
 			// IV at equilibrium state
-//			V_ms[idx] = -60.8457f;
-//			V_ms_last[idx] = -60.8450f;
-//			n_chs[idx] = 0.3763f;
-//			m_chs[idx] = 0.0833f;
-//			h_chs[idx] = 0.4636f;
+			V_ms[idx] = -60.8457f;
+			V_ms_last[idx] = -60.8450f;
+			n_chs[idx] = 0.3763f;
+			m_chs[idx] = 0.0833f;
+			h_chs[idx] = 0.4636f;
 
 			I_es[idx] = I_e;
 
@@ -403,9 +406,9 @@ void swap_spikes(){
 		for (int sp_n = num_spikes_neur[n]; sp_n < num_spikes_neur[n]; sp_n++){
 			spike_times_temp[Nneur*(sp_n - min_spike_nums_syn[n]) + n] = spike_times[Nneur*sp_n + n];
 		}
-//		num_spikes_neur[n] -= min_spike_nums_syn[n];
 		// @TODO
 		// В случае если считаем для несвязанный нейронов нужно убрать это
+//		 num_spikes_neur[n] -= min_spike_nums_syn[n];
 		 num_spikes_neur[n] = 0;
 	}
 
@@ -432,7 +435,6 @@ void clearResFiles(){
 			fclose(file);
 		}
 	}
-
 }
 
 void apndResToFile(){

@@ -12,7 +12,7 @@ from matplotlib.gridspec import GridSpec
 from scipy.ndimage.filters import gaussian_filter as gs_filter
 
 seedIdx=0
-Ie=5.20
+Ie=5.27
 
 #N=2
 #rate = 185.0
@@ -30,14 +30,14 @@ Ie=5.20
 #varParam = np.arange(2.0, 3.0, 0.2)
 
 N = 30
-rate = 175.0
+rate = 170.0
 w_n = 2.4
-#varParam = np.arange(1.85, 2.31, 0.05)
-varParam = np.arange(1.6, 2.21, 0.05)
+#varParam = np.arange(1.6, 2.1251, 0.025)
+varParam = np.arange(1.85, 2.3, 0.025)
 
-res_path = '/media/ssd/bistability/'
+res_path = ''
 
-path = res_path + 'N_{}_rate_{}_w_n_{}_Ie_{:.2f}/seed_{}'.format(N, rate, w_n, Ie, seedIdx)
+path = res_path + 'N_{}_rate_{}_w_n_{}_Ie_{:.2f}_/seed_{}'.format(N, rate, w_n, Ie, seedIdx)
 
 fig = pl.figure("rastrs", figsize=(12, 9))
 matplotlib.rc('lines', linewidth=0.75)

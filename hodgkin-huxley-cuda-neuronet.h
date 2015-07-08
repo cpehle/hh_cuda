@@ -11,12 +11,12 @@
 #include <curand_kernel.h>
 #include <iostream>
 
-#define CUDA_CHECK_RETURN(value) {							\
-	cudaError_t _m_cudaStat = value;						\
-	if (_m_cudaStat != cudaSuccess) {						\
-		fprintf(stderr, "Error %s at line %d in file %s\n",			\
+#define CUDA_CHECK_RETURN(value) {										\
+	cudaError_t _m_cudaStat = value;									\
+	if (_m_cudaStat != cudaSuccess) {									\
+		fprintf(stderr, "Error %s at line %d in file %s\n",				\
 				cudaGetErrorString(_m_cudaStat), __LINE__, __FILE__);	\
-		exit(1);								\
+		exit(1);														\
 	} }
 
 #define NEUR_BLOCK_SIZE 128
@@ -29,10 +29,10 @@
 #define g_L   .3f
 #define E_K   -77.0f
 // @TODO для нейронов в бистабильном режиме E_Na = 55.
-//#define E_Na  55.0f
-#define E_Na 50.0f
+#define E_Na  55.0f
+//#define E_Na 50.0f
 #define E_L   -54.4f
-#define V_peak 18.0f
+#define V_peak 25.0f
 
 #define tau_cor 2.0f
 #define recInt 5
@@ -49,7 +49,7 @@ int time_part_syn;
 // if greater then fragmentation becomes less,
 // but more RAM is used
 // in frames
-int SaveIntervalTIdx = 1000000;
+int SaveIntervalTIdx = 100000;
 
 float tau_psc = 0.2f;
 float exp_psc;
