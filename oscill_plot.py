@@ -15,9 +15,11 @@ N = 1
 rate = 0.0
 w_n = 0.0
 
-h = 0.5
+h = 0.24
 res_path = '/media/ssd/'
 path = res_path + 'N_{}_rate_{}_w_n_{}_Ie_{:.2f}/'.format(N, rate, w_n, Ie)
+BundSz = 200
+varParam = np.arange(1.0, 201.0, 5.)
 
 def load(seed=0):
     t = []
@@ -33,21 +35,31 @@ def load(seed=0):
     Vm = array(Vm[1:], dtype='float32')
     return t, Vm
 
-def calcQuality(Nstart, Nstop):
-    for i in xrange(Nstart, Nstop):
+qual = zeros_like(varParam)
+for idx, D in enumerate(varParam):
+    dind = D*40/(201.0 - 1.0)
+    Nstart = int(dind*BundSz)
+    print D
+
+    for i in xrange(Nstart, Nstart + 101):
         t, Vm = load(i)
         spec = abs(fft(Vm - mean(Vm)))
         if i == Nstart:
             specMean = spec
         else:
             specMean += spec
-    specMean /= (Nstop - Nstart)
+    specMean /= BundSz
     specMean = fftshift(specMean)
     specMean = specMean[len(specMean)/2:]
 
     specMean = gs_filter(specMean, 4)
 
     frange = linspace(0, 0.5*1000/h, len(specMean))
+    if idx % 10 == 0:
+        figure('spectras')
+        plot(frange, specMean, label=str(D))
+        xlim((0, 100))
+        legend(loc='upper right')
 
     fmax = frange[argmax(specMean)]
     afmax = max(specMean)
@@ -57,24 +69,12 @@ def calcQuality(Nstart, Nstop):
     st = frange[nonzero(df == 1)[0][0] + 1]
     stp = frange[nonzero(df == -1)[0][0] + 1]
 
-#    figure('spectras')
-#    hlines(afmax/2, st, stp)
-#    plot(frange, specMean, label=str(D))
-#    xlim((0, 100))
-#    legend(loc='upper right')
+    hlines(afmax/2, st, stp)
 
-    qual = afmax*fmax/(stp - st)
+    qual[idx] = afmax*fmax/(stp - st)
 
-    return qual
-#%%
-BundSz = 100
-varParam = np.arange(1.0, 161.0, 5.)
-bs = zeros_like(varParam)
-for idx, D in enumerate(varParam):
-    print D
-    bs[idx]  = calcQuality(BundSz*idx, BundSz*(idx+1))
 figure("q factor")
-semilogx(varParam, bs, label=str(Ie))
+semilogx(varParam, qual, label=str(Ie))
 legend()
 #%%
 #D = 21.

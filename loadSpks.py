@@ -10,7 +10,7 @@ import numpy as np
 import csv
 import os
 
-Ie=5.6
+Ie=4.4
 
 #N = 30
 #rate = 170.0
