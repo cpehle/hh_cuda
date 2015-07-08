@@ -4,19 +4,21 @@ Created on Mon Jun 15 17:06:52 2015
 
 @author: Pavel Esir
 """
-
+import matplotlib.pylab as pl
+import numpy as np
 import csv
-from numpy.fft import fft
+from numpy.fft import fft, fftshift
 from scipy.ndimage.filters import gaussian_filter as gs_filter
+pl.ioff()
 
-Ie=5.6
+Ie=4.4
 
 N = 1
 rate = 0.0
 w_n = 0.0
 
 h = 0.24
-res_path = '/media/ssd/'
+res_path = '/media/pavel/windata/'
 path = res_path + 'N_{}_rate_{}_w_n_{}_Ie_{:.2f}/'.format(N, rate, w_n, Ie)
 BundSz = 200
 varParam = np.arange(1.0, 201.0, 5.)
@@ -31,11 +33,11 @@ def load(seed=0):
         Vm.append(l[1])
     f.close()
 
-    t = array(t[1:], dtype='float32')
-    Vm = array(Vm[1:], dtype='float32')
+    t = np.array(t[1:], dtype='float32')
+    Vm = np.array(Vm[1:], dtype='float32')
     return t, Vm
 
-qual = zeros_like(varParam)
+qual = np.zeros_like(varParam)
 for idx, D in enumerate(varParam):
     dind = D*40/(201.0 - 1.0)
     Nstart = int(dind*BundSz)
@@ -43,7 +45,7 @@ for idx, D in enumerate(varParam):
 
     for i in xrange(Nstart, Nstart + 101):
         t, Vm = load(i)
-        spec = abs(fft(Vm - mean(Vm)))
+        spec = abs(fft(Vm - np.mean(Vm)))
         if i == Nstart:
             specMean = spec
         else:
@@ -54,28 +56,29 @@ for idx, D in enumerate(varParam):
 
     specMean = gs_filter(specMean, 4)
 
-    frange = linspace(0, 0.5*1000/h, len(specMean))
-    if idx % 10 == 0:
-        figure('spectras')
-        plot(frange, specMean, label=str(D))
-        xlim((0, 100))
-        legend(loc='upper right')
-
-    fmax = frange[argmax(specMean)]
+    frange = np.linspace(0, 0.5*1000/h, len(specMean))
+    fmax = frange[np.argmax(specMean)]
     afmax = max(specMean)
 
 
-    df=diff(array(specMean > afmax/2, dtype='int'))
-    st = frange[nonzero(df == 1)[0][0] + 1]
-    stp = frange[nonzero(df == -1)[0][0] + 1]
+    df=np.diff(np.array(specMean > afmax/np.sqrt(2), dtype='int'))
+    st = frange[np.nonzero(df == 1)[0][0] + 1]
+    stp = frange[np.nonzero(df == -1)[0][0] + 1]
 
-    hlines(afmax/2, st, stp)
+    if idx % 1 == 0:
+        pl.figure('spectras')
+        pl.plot(frange, specMean, label=str(D))
+        pl.hlines(afmax/np.sqrt(2), st, stp)
+        pl.xlim((0, 200))
+        pl.legend(loc='upper right')
+        pl.show()
 
     qual[idx] = afmax*fmax/(stp - st)
 
-figure("q factor")
-semilogx(varParam, qual, label=str(Ie))
-legend()
+pl.figure("q factor")
+pl.semilogx(varParam, qual, label=str(Ie))
+pl.legend()
+pl.show()
 #%%
 #D = 21.
 #D1 = 1.
