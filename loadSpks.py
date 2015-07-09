@@ -30,14 +30,14 @@ Ie=4.4
 N = 1
 rate = 0.0
 w_n = 0.0
-varParam = np.arange(1.0, 201.0, 5.)
+varParam = np.arange(1.0, 201.0, 10.)
 
-res_path = '/media/pavel/windata/'
+res_path = '/media/ssd/no_oscill/'
 
 def loadIsi(w_p):
     print w_p
     isiAll = []
-    for seedIdx in range(0, 200):
+    for seedIdx in range(0, 100):
         path = res_path + 'N_{}_rate_{}_w_n_{}_Ie_{:.2f}/seed_{}/'.format(N, rate, w_n, Ie, seedIdx)
         f = open(path + 'w_p_{:.3f}'.format(w_p), "r")
 
@@ -72,17 +72,20 @@ for idx, w_p in enumerate(varParam):
     isiStd.append(np.std(isi))
     isiMn.append(np.mean(isi))
 
-    hs = np.histogram(isi, bins=100, range=(0, 30), normed=True)
+    hs = np.histogram(isi, bins=100, range=(0, 30))
     isiHst = hs[0]
     Trange = hs[1][:-1]
     isiHst = gs_filter(isiHst, 1)
 
-    tmax = Trange[np.argmax(isiHst)]
-    atmax = max(isiHst)
+    tmaxInd = np.argmax(isiHst)
+    tmax = Trange[tmaxInd]
+    atmax = np.max(isiHst)
 
-    df=np.diff(np.array(isiHst > atmax/np.sqrt(2), dtype='int'))
+    df=np.diff(np.array(isiHst[:tmaxInd] > atmax/np.sqrt(2), dtype='int'))
     st = Trange[np.nonzero(df == 1)[0][0]]
-    stp = Trange[np.nonzero(df == -1)[0][0]]
+    df=np.diff(np.array(isiHst[tmaxInd:] < atmax/np.sqrt(2), dtype='int'))
+    stp = Trange[tmaxInd + np.nonzero(df == 1)[0][0]]
+
     qual.append(atmax*tmax/(stp - st))
     if idx % 1 == 0:
         pl.figure('isi spectras')
