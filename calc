@@ -67,11 +67,11 @@ Nneur=1
 rate=0.0
 w_n=0.0
 sim_time=2000
-h=0.02
-w_p1=1.0
-w_p2=201.0
-w_p_nbund=40
-seed_nbund=200
+h=0.01
+w_p1=-0.4
+w_p2=3.0
+w_p_nbund=17
+seed_nbund=800
 seed=0
 Ie=5.27
 
@@ -83,7 +83,7 @@ for Ie in `LANG=en_US.UTF-8 seq 4.40 0.20 6.00`; do
 	echo "Total Neur Num: $Ntotal"
 	fname=$path\N\_$Nneur\_rate_$rate\_w_n_$w_n\_Ie\_$Ie
 	mkdir $fname
-	for j in `seq $seed $[$seed_nbund + $seed - 1]`;do
+	for j in `seq $seed $[$seed_nbund + $seed - 1]`; do
 	    mkdir $fname/seed\_$j
 	done
 	head=`git log -1 --format="%h"`

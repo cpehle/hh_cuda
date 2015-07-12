@@ -35,7 +35,7 @@
 #define V_peak 25.0f
 
 #define tau_cor 2.0f
-#define recInt 12
+#define recInt 50
 #define T_sim_partial 100000 // in time frames
 
 int time_part_syn;

@@ -343,7 +343,8 @@ void init_neurs_from_file(){
 
 			if (gaussNoiseFlag == 1){
 				exp_w_p[idx] = 0.0f;
-				Ds_host[idx] = (w_p_start + ((w_p_stop - w_p_start)/W_P_NUM_BUND)*bund);
+//				Ds_host[idx] = (w_p_start + ((w_p_stop - w_p_start)/W_P_NUM_BUND)*bund);
+				Ds_host[idx] = pow(10, (w_p_start + ((w_p_stop - w_p_start)/W_P_NUM_BUND)*bund));
 			} else {
 				exp_w_p[idx] = (expf(1.0f)/tau_psc)*(w_p_start + ((w_p_stop - w_p_start)/W_P_NUM_BUND)*bund);
 				Ds_host[idx] = 0.0f;
@@ -627,7 +628,9 @@ void save_oscill(int tm, bool lastFlag /*lastFlag=false*/){
 		s >> name;
 		file = fopen(name, "a+");
 		for (int t = 0; t < Tmax; t++){
-			fprintf(file, "%.3f\t%.3f\n", (Tshift + t*recInt)*h, Vrec[Nneur*t + j]);
+			//fprintf(file, "%.3f\t%.3f\n", (Tshift + t*recInt)*h, Vrec[Nneur*t + j]);
+			fwrite(&Vrec[Nneur*t + j], sizeof(float), 1, file);
+			//fprintf(file, "%.3f\n", Vrec[Nneur*t + j]);
 		}
 		fclose(file);
 	}
