@@ -613,11 +613,13 @@ void clear_oscill_file(){
 }
 
 void save_oscill(int tm, bool lastFlag /*lastFlag=false*/){
-	int Tshift = tm - T_sim_partial;
 	int Tmax = T_sim_partial/recInt;
 	if (lastFlag) {
-		Tshift = T_sim - 1 - (T_sim - 1) % T_sim_partial;
 		Tmax = ((T_sim - 1) % T_sim_partial)/recInt;
+	}
+	int Tstart = 0;
+	if (tm == T_sim_partial){
+	    Tstart = 1;
 	}
 	FILE* file;
 	stringstream s;
@@ -627,10 +629,8 @@ void save_oscill(int tm, bool lastFlag /*lastFlag=false*/){
 		s << f_name << "/" << "N_" << j << "_oscill.csv" << endl;
 		s >> name;
 		file = fopen(name, "a+");
-		for (int t = 0; t < Tmax; t++){
-			//fprintf(file, "%.3f\t%.3f\n", (Tshift + t*recInt)*h, Vrec[Nneur*t + j]);
+		for (int t = Tstart; t < Tmax; t++){
 			fwrite(&Vrec[Nneur*t + j], sizeof(float), 1, file);
-			//fprintf(file, "%.3f\n", Vrec[Nneur*t + j]);
 		}
 		fclose(file);
 	}
