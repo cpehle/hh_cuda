@@ -38,7 +38,7 @@
 #define recInt 50
 #define T_sim_partial 100000 // in time frames
 
-int time_part_syn;
+unsigned int time_part_syn;
 // maximum part of simulating time for which is allocated memory
 // time_part_syn <= T[ms]/h[ms]
 // 15.0f is rough period
@@ -49,7 +49,7 @@ int time_part_syn;
 // if greater then fragmentation becomes less,
 // but more RAM is used
 // in frames
-int SaveIntervalTIdx = 100000;
+unsigned int SaveIntervalTIdx = 100000;
 
 float tau_psc = 0.2f;
 float exp_psc;
@@ -120,9 +120,9 @@ int* num_spk_in_bund;
 float* Vrec;
 float* Vrec_dev;
 
-int Ncon;
+unsigned int Ncon;
 
-int T_sim;
+unsigned int T_sim;
 
 int gaussNoiseFlag = 0;
 

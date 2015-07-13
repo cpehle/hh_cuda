@@ -11,11 +11,11 @@ unsigned int seed = 1;
 float h = 0.1f;
 float SimulationTime = 10000.0f; // in ms
 
-int Nneur = 2;
-int W_P_NUM_BUND = 1; // number of different poisson weights
-int W_P_BUND_SZ = Nneur/W_P_NUM_BUND; // Number of neurons in bundle with same w_ps
-int BUND_SZ = 2;  // Number of neurons in a single realization
-int NUM_BUND = W_P_BUND_SZ/BUND_SZ;
+unsigned int Nneur = 2;
+unsigned int W_P_NUM_BUND = 1; // number of different poisson weights
+unsigned int W_P_BUND_SZ = Nneur/W_P_NUM_BUND; // Number of neurons in bundle with same w_ps
+unsigned int BUND_SZ = 2;  // Number of neurons in a single realization
+unsigned int NUM_BUND = W_P_BUND_SZ/BUND_SZ;
 
 // connection parameters
 float I_e = 5.27f;
@@ -118,13 +118,13 @@ __global__ void integrate_neurons(
 
 			// if where is poisson impulse on neuron
 			while (psn_time[n] == t){
-				y_psn[n] += exp_w_p[n];
+//				y_psn[n] += exp_w_p[n];
 
-//				if (curand_uniform(&state[n]) >= 0.5f){
-//					y_psn[n] += exp_w_p[n];
-//				} else {
-//					y_psn[n] -= exp_w_p[n];
-//				}
+				if (curand_uniform(&state[n]) >= 0.5f){
+					y_psn[n] += exp_w_p[n];
+				} else {
+					y_psn[n] -= exp_w_p[n];
+				}
 
 				psn_time[n] -= (1000.0f/(rate*h))*logf(get_random(psn_seed + n));
 			}
@@ -235,11 +235,10 @@ int main(int argc, char* argv[]){
 	init_poisson<<<dim3(Nneur/NEUR_BLOCK_SIZE + 1), dim3(NEUR_BLOCK_SIZE)>>>(psn_times_dev, psn_seeds_dev, seed, rate, h, Nneur, W_P_BUND_SZ);
 	init_noise<<<dim3(Nneur/NEUR_BLOCK_SIZE + 1), dim3(NEUR_BLOCK_SIZE)>>>(noise_states_dev, Inoise_dev, Ds_dev, seed, Nneur, W_P_BUND_SZ);
 
-	clock_t start = clock();
 	time_t curr_time = time(0);
     char* st = asctime(localtime(&curr_time));
 	cerr << "Start: " << st << endl;
-    for (int t = 1; t < T_sim; t++){
+    for (unsigned int t = 1; t < T_sim; t++){
 #ifdef OSCILL_SAVE
 		cudaDeviceSynchronize();
     	if (t % T_sim_partial == 0){
@@ -321,9 +320,9 @@ void init_neurs_from_file(){
 //		get_random(param_distr_seeds + i);
 //	}
 	malloc_neur_memory();
-	for (int bund = 0; bund < W_P_NUM_BUND; bund++){
-		for (int n = 0; n < W_P_BUND_SZ; n++){
-			int idx = W_P_BUND_SZ*bund + n;
+	for (unsigned int bund = 0; bund < W_P_NUM_BUND; bund++){
+		for (unsigned int n = 0; n < W_P_BUND_SZ; n++){
+			unsigned int idx = W_P_BUND_SZ*bund + n;
 
 			// IV on limit cycle
 //			V_ms[idx] = 32.9066f;
@@ -343,8 +342,8 @@ void init_neurs_from_file(){
 
 			if (gaussNoiseFlag == 1){
 				exp_w_p[idx] = 0.0f;
-//				Ds_host[idx] = (w_p_start + ((w_p_stop - w_p_start)/W_P_NUM_BUND)*bund);
-				Ds_host[idx] = pow(10, (w_p_start + ((w_p_stop - w_p_start)/W_P_NUM_BUND)*bund));
+				Ds_host[idx] = (w_p_start + ((w_p_stop - w_p_start)/W_P_NUM_BUND)*bund);
+//				Ds_host[idx] = pow(10, (w_p_start + ((w_p_stop - w_p_start)/W_P_NUM_BUND)*bund));
 			} else {
 				exp_w_p[idx] = (expf(1.0f)/tau_psc)*(w_p_start + ((w_p_stop - w_p_start)/W_P_NUM_BUND)*bund);
 				Ds_host[idx] = 0.0f;
@@ -355,13 +354,13 @@ void init_neurs_from_file(){
 
 void save2HOST(){
 	int w_p_bund_idx, w_p_bund_neur, bund_idx, idx, neur;
-	for (int n = 0; n < Nneur; n++){
+	for (unsigned int n = 0; n < Nneur; n++){
 		w_p_bund_idx = n/W_P_BUND_SZ;
 		w_p_bund_neur = n % W_P_BUND_SZ;
 		bund_idx = w_p_bund_neur/BUND_SZ;
 		neur = w_p_bund_neur % BUND_SZ;
 		idx = NUM_BUND*w_p_bund_idx + bund_idx;
-		for (int sp_n = 0; sp_n < num_spikes_neur[n]; sp_n++){
+		for (unsigned int sp_n = 0; sp_n < num_spikes_neur[n]; sp_n++){
 			res_senders[W_P_NUM_BUND*NUM_BUND*num_spk_in_bund[idx] + idx] = neur;
 			res_times[W_P_NUM_BUND*NUM_BUND*num_spk_in_bund[idx] + idx] = spike_times[Nneur*sp_n + n]*h;
 			num_spk_in_bund[idx]++;
@@ -372,10 +371,10 @@ void save2HOST(){
 void swap_spikes(){
 	int* spike_times_temp = new int[Nneur*T_sim_partial/time_part_syn];
 	int* min_spike_nums_syn = new int[Nneur];
-	for (int n = 0; n < Nneur; n++){
+	for (unsigned int n = 0; n < Nneur; n++){
 		min_spike_nums_syn[n] = INT_MAX;
 	}
-	for (int s = 0; s < Ncon; s++){
+	for (unsigned int s = 0; s < Ncon; s++){
 		if (num_spikes_syn[s] < min_spike_nums_syn[pre_conns[s]]){
 			min_spike_nums_syn[pre_conns[s]] = num_spikes_syn[s];
 		}
@@ -383,28 +382,28 @@ void swap_spikes(){
 	// В случае если у нейрона не было никаких исходящих связей, то минимальное количество
 	// Спйков которые обработли его исходящие синапсы будет равна INT_MAX, а это неверно
 	// Поэтома надо насильно поставить 0, для этого тут и эта конструкция
-	for (int n = 0; n < Nneur; n++){
+	for (unsigned int n = 0; n < Nneur; n++){
 		if (min_spike_nums_syn[n] == INT_MAX){
 			min_spike_nums_syn[n] = 0;
 		}
 	}
 
 	int w_p_bund_idx, w_p_bund_neur, bund_idx, neur, idx;
-	for (int n = 0; n < Nneur; n++){
+	for (unsigned int n = 0; n < Nneur; n++){
 		w_p_bund_idx = n/W_P_BUND_SZ;
 		w_p_bund_neur = n % W_P_BUND_SZ;
 		bund_idx = w_p_bund_neur/BUND_SZ;
 		neur = w_p_bund_neur % BUND_SZ;
 		idx = NUM_BUND*w_p_bund_idx + bund_idx;
-//		for (int sp_n = 0; sp_n < min_spike_nums_syn[n]; sp_n++){
-		for (int sp_n = 0; sp_n < num_spikes_neur[n]; sp_n++){
+//		for (unsigned int sp_n = 0; sp_n < min_spike_nums_syn[n]; sp_n++){
+		for (unsigned int sp_n = 0; sp_n < num_spikes_neur[n]; sp_n++){
 			res_senders[W_P_NUM_BUND*NUM_BUND*num_spk_in_bund[idx] + idx] = neur;
 			res_times[W_P_NUM_BUND*NUM_BUND*num_spk_in_bund[idx] + idx] = spike_times[Nneur*sp_n + n]*h;
 			num_spk_in_bund[idx]++;
 		}
 
-//		for (int sp_n = min_spike_nums_syn[n]; sp_n < num_spikes_neur[n]; sp_n++){
-		for (int sp_n = num_spikes_neur[n]; sp_n < num_spikes_neur[n]; sp_n++){
+//		for (unsigned int sp_n = min_spike_nums_syn[n]; sp_n < num_spikes_neur[n]; sp_n++){
+		for (unsigned int sp_n = num_spikes_neur[n]; sp_n < num_spikes_neur[n]; sp_n++){
 			spike_times_temp[Nneur*(sp_n - min_spike_nums_syn[n]) + n] = spike_times[Nneur*sp_n + n];
 		}
 		// @TODO
@@ -413,7 +412,7 @@ void swap_spikes(){
 		 num_spikes_neur[n] = 0;
 	}
 
-	for (int s = 0; s < Ncon; s++){
+	for (unsigned int s = 0; s < Ncon; s++){
 		num_spikes_syn[s] -= min_spike_nums_syn[pre_conns[s]];
 	}
 
@@ -427,8 +426,8 @@ void clearResFiles(){
 	stringstream s;
 	s.precision(3);
 	char* name = new char[500];
-	for (int i = 0; i < W_P_NUM_BUND; i++){
-		for (int j = 0; j < NUM_BUND; j++){
+	for (unsigned int i = 0; i < W_P_NUM_BUND; i++){
+		for (unsigned int j = 0; j < NUM_BUND; j++){
 			s << f_name << "/" << "seed_" << j + seed
 					    << "/w_p_" << fixed << w_p_start + (w_p_stop - w_p_start)*i/W_P_NUM_BUND << endl;
 			s >> name;
@@ -443,14 +442,14 @@ void apndResToFile(){
 	stringstream s;
 	s.precision(3);
 	char* name = new char[500];
-	for (int i = 0; i < W_P_NUM_BUND; i++){
-		for (int j = 0; j < NUM_BUND; j++){
+	for (unsigned int i = 0; i < W_P_NUM_BUND; i++){
+		for (unsigned int j = 0; j < NUM_BUND; j++){
 			s << f_name << "/" << "seed_" << j + seed
 					    << "/w_p_" << fixed << w_p_start + (w_p_stop - w_p_start)*i/W_P_NUM_BUND << endl;
 			s >> name;
 			file = fopen(name, "a+");
 			int idx = NUM_BUND*i + j;
-			for (int spk = 0; spk < num_spk_in_bund[idx]; spk++){
+			for (unsigned int spk = 0; spk < num_spk_in_bund[idx]; spk++){
 				fprintf(file, "%i\t%.3f\n", res_senders[W_P_NUM_BUND*NUM_BUND*spk + idx], res_times[W_P_NUM_BUND*NUM_BUND*spk + idx]);
 			}
 			num_spk_in_bund[idx] = 0;
@@ -604,8 +603,8 @@ void clear_oscill_file(){
 	stringstream s;
 	s.precision(2);
 	char* name = new char[500];
-	for (int j = 0; j < Nneur; j++){
-		s << f_name << "/" << "N_" << j << "_oscill.csv" << endl;
+	for (unsigned int j = 0; j < Nneur; j++){
+		s << f_name << "/" << "N_" << j << "_oscill" << endl;
 		s >> name;
 		file = fopen(name, "w");
 		fclose(file);
@@ -625,8 +624,8 @@ void save_oscill(int tm, bool lastFlag /*lastFlag=false*/){
 	stringstream s;
 	s.precision(2);
 	char* name = new char[500];
-	for (int j = 0; j < Nneur; j++){
-		s << f_name << "/" << "N_" << j << "_oscill.csv" << endl;
+	for (unsigned int j = 0; j < Nneur; j++){
+		s << f_name << "/" << "N_" << j << "_oscill" << endl;
 		s >> name;
 		file = fopen(name, "a+");
 		for (int t = Tstart; t < Tmax; t++){
