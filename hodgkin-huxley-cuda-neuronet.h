@@ -71,8 +71,8 @@ float* I_last;   // previous time step current value
 
 float *exp_w_p;
 
-int* spike_times; // spike times for each neuron
-int* num_spikes_neur;  // number of spikes on each neuron
+unsigned int* spike_times; // spike times for each neuron
+unsigned int* num_spikes_neur;  // number of spikes on each neuron
 
 float* V_ms_dev;
 float* V_ms_last_dev;
@@ -90,10 +90,10 @@ float* I_last_dev;
 
 float *exp_w_p_dev;
 
-int* spike_times_dev;
-int* num_spikes_neur_dev;
+unsigned int* spike_times_dev;
+unsigned int* num_spikes_neur_dev;
 
-int* psn_times_dev;
+unsigned int* psn_times_dev;
 unsigned int* psn_seeds_dev;
 
 float* Ds_dev;
@@ -102,20 +102,20 @@ float* Inoise_dev;
 curandState* noise_states_dev;
 // Variables for each synapse
 float* weights;
-int* pre_conns;
-int* post_conns;
-int* delays; // delays in integration steps
-int* num_spikes_syn; // number of processed spikes by each synapse
+unsigned int* pre_conns;
+unsigned int* post_conns;
+unsigned int* delays; // delays in integration steps
+unsigned int* num_spikes_syn; // number of processed spikes by each synapse
 
 float* weights_dev;
-int* pre_conns_dev;
-int* post_conns_dev;
-int* delays_dev;
-int* num_spikes_syn_dev;
+unsigned int* pre_conns_dev;
+unsigned int* post_conns_dev;
+unsigned int* delays_dev;
+unsigned int* num_spikes_syn_dev;
 
 float* res_times;
-int* res_senders;
-int* num_spk_in_bund;
+unsigned int* res_senders;
+unsigned int* num_spk_in_bund;
 
 float* Vrec;
 float* Vrec_dev;
@@ -146,7 +146,7 @@ void init_poisson();
 
 void clear_files();
 
-void save_oscill(int tm, bool lastFlag=false);
+void save_oscill(unsigned int tm, bool lastFlag=false);
 
 void init_params(int, char*[]);
 
