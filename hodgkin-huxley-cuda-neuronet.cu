@@ -277,10 +277,10 @@ int main(int argc, char* argv[]){
 	cudaMemcpy(num_spikes_neur, num_spikes_neur_dev, Nneur*sizeof(int), cudaMemcpyDeviceToHost);
 	curr_time = time(0);
 	cerr << "Stop: " << asctime(localtime(&curr_time)) << endl;
-	cerr << "Finished!" << endl;
 
 	save2HOST();
 	apndResToFile();
+	cerr << "Finished!" << endl;
 	return 0;
 }
 
@@ -397,8 +397,7 @@ void swap_spikes(){
 //		for (unsigned int sp_n = num_spikes_neur[n]; sp_n < num_spikes_neur[n]; sp_n++){
 			spike_times_temp[Nneur*(sp_n - min_spike_nums_syn[n]) + n] = spike_times[Nneur*sp_n + n];
 		}
-		// @TODO
-		// В случае если считаем для несвязанный нейронов нужно убрать это
+		// @TODO В случае если считаем для несвязанный нейронов нужно убрать это
 		 num_spikes_neur[n] -= min_spike_nums_syn[n];
 //		 num_spikes_neur[n] = 0;
 	}
@@ -478,8 +477,9 @@ void malloc_neur_memory(){
 	res_times = new float[W_P_NUM_BUND*NUM_BUND*expected_spk_num];
 	res_senders = new int[W_P_NUM_BUND*NUM_BUND*expected_spk_num];
 	num_spk_in_bund = new int[W_P_NUM_BUND*NUM_BUND]();
-
+#ifdef OSCILL_SAVE
 	Vrec = new float[Nneur*T_sim_partial/recInt];
+#endif
 }
 
 void malloc_conn_memory(){
@@ -533,9 +533,9 @@ void copy2device(){
 	cudaMalloc((void**) &post_conns_dev, s_isize);
 	cudaMalloc((void**) &delays_dev, s_isize);
 	cudaMalloc((void**) &num_spikes_syn_dev, s_isize);
-
+#ifdef OSCILL_SAVE
 	cudaMalloc((void**) &Vrec_dev, Nneur*T_sim_partial/recInt*sizeof(float));
-
+#endif
 	// Copying to GPU device memory neuron arrays
 	cudaMemcpy(V_ms_dev, V_ms, n_fsize, cudaMemcpyHostToDevice);
 	cudaMemcpy(V_ms_last_dev, V_ms_last, n_fsize, cudaMemcpyHostToDevice);
