@@ -126,7 +126,7 @@ __global__ void integrate_neurons(
 //					y_psn[n] -= exp_w_p[n];
 //				}
 
-				psn_time[n] -= (1000.0f/(rate*h))*logf(get_random(psn_seed + n));
+				psn_time[n] -= (int) ((1000.0f/(rate*h))*logf(get_random(psn_seed + n)));
 			}
 			float V_mem, n_channel, m_channel, h_channel;
 			float v1, v2, v3, v4;
