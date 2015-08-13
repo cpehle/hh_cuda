@@ -1,10 +1,12 @@
 #include <cstdio>
+#include <string>
 #include <fstream>
 #include <sstream>
 #include <cmath>
 #include <cstdlib>
 #include <climits>
 #include <ctime>
+#include <mpi.h>
 #include "hodgkin-huxley-cuda-neuronet.h"
 
 unsigned int seed = 1;
@@ -19,6 +21,7 @@ unsigned int NUM_BUND = W_P_BUND_SZ/BUND_SZ;
 
 // connection parameters
 float I_e = 5.27f;
+float dI_e = 0.0f;
 float w_p_start = 1.8f; // pA
 float w_p_stop = 2.0f;
 float w_n = 5.4f;
@@ -216,14 +219,37 @@ __global__ void integrate_neurons(
 
 using namespace std;
 
+int world_size, world_rank;
+
 int main(int argc, char* argv[]){
-	init_params(argc, argv);
-	exp_psc = expf(-h/tau_psc);
+    init_params(argc, argv);
+
+    #ifdef WITH_MPI
+//    cout << "Calculating with MPI" << endl;
+    MPI_Init(NULL, NULL);
+
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+
+
+    int deviceCount = 0;
+    cudaGetDeviceCount(&deviceCount);
+    switch (deviceCount){
+        case 3: cudaSetDevice(world_rank % 3); break;
+        case 1: cudaSetDevice(0); break;
+        default: exit(EXIT_FAILURE);
+    }
+    I_e += dI_e*world_rank;
+    sprintf(f_name, "%s/N_%i_rate_%.1f_w_n_%.1f_Ie_%.2f", f_name, W_P_BUND_SZ, rate, w_n, I_e);
+#else
+    cudaSetDevice(0);
+#endif
+
+    exp_psc = expf(-h/tau_psc);
 	time_part_syn = 10.0f/h;
 	T_sim = SimulationTime/h;
 	init_neurs_from_file();
 	init_conns_from_file();
-	cudaSetDevice(0);
 	copy2device();
 	clearResFiles();
 #ifdef OSCILL_SAVE
@@ -234,7 +260,7 @@ int main(int argc, char* argv[]){
 
 	time_t curr_time = time(0);
     char* st = asctime(localtime(&curr_time));
-	cerr << "Start: " << st << endl;
+	cout << "Start: for rank: " << world_rank << " " << st << endl;
     for (unsigned int t = 1; t < T_sim; t++){
 #ifdef OSCILL_SAVE
 		cudaDeviceSynchronize();
@@ -251,7 +277,7 @@ int main(int argc, char* argv[]){
 				spike_times_dev, num_spikes_syn_dev, num_spikes_neur_dev, t, Nneur, Ncon);
 		cudaDeviceSynchronize();
     	if ((t % T_sim_partial) == 0){
-			cout << t*h << endl;
+			cerr << t*h << endl;
 			CUDA_CHECK_RETURN(cudaMemcpy(spike_times, spike_times_dev, Nneur*sizeof(int)*T_sim_partial/time_part_syn, cudaMemcpyDeviceToHost));
 			CUDA_CHECK_RETURN(cudaMemcpy(num_spikes_neur, num_spikes_neur_dev, Nneur*sizeof(int), cudaMemcpyDeviceToHost));
 			CUDA_CHECK_RETURN(cudaMemcpy(num_spikes_syn, num_spikes_syn_dev, Ncon*sizeof(int), cudaMemcpyDeviceToHost));
@@ -262,7 +288,7 @@ int main(int argc, char* argv[]){
 			CUDA_CHECK_RETURN(cudaMemcpy(num_spikes_syn_dev, num_spikes_syn, Ncon*sizeof(int), cudaMemcpyHostToDevice));
 			if ( t % SaveIntervalTIdx == 0){
 				apndResToFile();
-				cout << "Results saved to file!" << endl;
+				cerr << "Results saved to file!" << endl;
 			}
 
 		}
@@ -276,11 +302,13 @@ int main(int argc, char* argv[]){
 	cudaMemcpy(spike_times, spike_times_dev, Nneur*sizeof(int)*T_sim_partial/time_part_syn, cudaMemcpyDeviceToHost);
 	cudaMemcpy(num_spikes_neur, num_spikes_neur_dev, Nneur*sizeof(int), cudaMemcpyDeviceToHost);
 	curr_time = time(0);
-	cerr << "Stop: " << asctime(localtime(&curr_time)) << endl;
+	cout << "Stop for rank: " << world_rank << " " << asctime(localtime(&curr_time)) << endl;
 
 	save2HOST();
 	apndResToFile();
-	cerr << "Finished!" << endl;
+
+	MPI_Finalize();
+
 	return 0;
 }
 
@@ -298,7 +326,7 @@ void init_conns_from_file(){
 
 	for (int s = 0; s < Ncon_part; s++){
 		con_file >> pre >> post >> delay;
-		for (int bund = 0; bund < W_P_NUM_BUND*NUM_BUND; bund++){
+		for (unsigned int bund = 0; bund < W_P_NUM_BUND*NUM_BUND; bund++){
 			int idx = bund*Ncon_part + s;
 			pre_conns[idx] = pre + bund*BUND_SZ;
 			post_conns[idx] = post + bund*BUND_SZ;
@@ -351,7 +379,7 @@ void save2HOST(){
 		bund_idx = w_p_bund_neur/BUND_SZ;
 		neur = w_p_bund_neur % BUND_SZ;
 		idx = NUM_BUND*w_p_bund_idx + bund_idx;
-		for (unsigned int sp_n = 0; sp_n < num_spikes_neur[n]; sp_n++){
+		for (int sp_n = 0; sp_n < num_spikes_neur[n]; sp_n++){
 			res_senders[W_P_NUM_BUND*NUM_BUND*num_spk_in_bund[idx] + idx] = neur;
 			res_times[W_P_NUM_BUND*NUM_BUND*num_spk_in_bund[idx] + idx] = spike_times[Nneur*sp_n + n]*h;
 			num_spk_in_bund[idx]++;
@@ -386,14 +414,14 @@ void swap_spikes(){
 		bund_idx = w_p_bund_neur/BUND_SZ;
 		neur = w_p_bund_neur % BUND_SZ;
 		idx = NUM_BUND*w_p_bund_idx + bund_idx;
-		for (unsigned int sp_n = 0; sp_n < min_spike_nums_syn[n]; sp_n++){
+		for (int sp_n = 0; sp_n < min_spike_nums_syn[n]; sp_n++){
 //		for (unsigned int sp_n = 0; sp_n < num_spikes_neur[n]; sp_n++){
 			res_senders[W_P_NUM_BUND*NUM_BUND*num_spk_in_bund[idx] + idx] = neur;
 			res_times[W_P_NUM_BUND*NUM_BUND*num_spk_in_bund[idx] + idx] = spike_times[Nneur*sp_n + n]*h;
 			num_spk_in_bund[idx]++;
 		}
 
-		for (unsigned int sp_n = min_spike_nums_syn[n]; sp_n < num_spikes_neur[n]; sp_n++){
+		for (int sp_n = min_spike_nums_syn[n]; sp_n < num_spikes_neur[n]; sp_n++){
 //		for (unsigned int sp_n = num_spikes_neur[n]; sp_n < num_spikes_neur[n]; sp_n++){
 			spike_times_temp[Nneur*(sp_n - min_spike_nums_syn[n]) + n] = spike_times[Nneur*sp_n + n];
 		}
@@ -439,7 +467,7 @@ void apndResToFile(){
 			s >> name;
 			file = fopen(name, "a+");
 			int idx = NUM_BUND*i + j;
-			for (unsigned int spk = 0; spk < num_spk_in_bund[idx]; spk++){
+			for (int spk = 0; spk < num_spk_in_bund[idx]; spk++){
 				fprintf(file, "%i\t%.3f\n", res_senders[W_P_NUM_BUND*NUM_BUND*spk + idx], res_times[W_P_NUM_BUND*NUM_BUND*spk + idx]);
 			}
 			num_spk_in_bund[idx] = 0;
@@ -582,7 +610,8 @@ void init_params(int argc, char* argv[]){
 			case 11: str >> w_n; break;
 			case 12: str >> par_f_name; break;
 			case 13: str >> I_e; break;
-			case 14: str >> gaussNoiseFlag; break;
+			case 14: str >> dI_e; break;
+			case 15: str >> gaussNoiseFlag; break;
 		}
 	}
 	W_P_BUND_SZ = Nneur/W_P_NUM_BUND;
