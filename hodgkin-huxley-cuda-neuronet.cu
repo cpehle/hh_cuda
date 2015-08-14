@@ -27,8 +27,13 @@ float w_p_stop = 2.0f;
 float w_n = 5.4f;
 float rate = 200.0f;
 
+int One = 0;
+
 char f_name[500] = "0";
 char par_f_name[500] = "nn_params_2.csv";
+char ivp_fname[500] = "";
+
+unsigned int Tstart = 1;
 
 __device__ __host__ float get_random(unsigned int *seed){
 	// return random number homogeneously distributed in interval [0:1]
@@ -69,7 +74,7 @@ __device__ float hh_h_ch(float V, float h_ch, float h){
 	return (.07f*(1.0f - h_ch)*expf(-(V + 65.0f)*0.05f) - h_ch/(1.0f + expf(-(V + 35.0f)*0.1f)))*h;
 }
 
-__global__ void init_poisson(int* psn_time, unsigned int *psn_seed, unsigned int seed, float rate, float h, int Nneur, int BundleSize){
+__global__ void init_poisson(unsigned int* psn_time, unsigned int *psn_seed, unsigned int seed, float rate, float h, int Nneur, int BundleSize){
 	int n = blockIdx.x*blockDim.x + threadIdx.x;
 	int neur = n % BundleSize;
 	if (n < Nneur){
@@ -88,7 +93,7 @@ __global__ void init_noise(curandState* state, float* Inoise, float* D, unsigned
 }
 
 __global__ void integrate_synapses(float* y, float* weight, int* delay, int* pre_conn, int* post_conn,
-		int* spike_time, int* num_spike_syn, int* num_spike_neur, int t, int Nneur, int Ncon){
+		int* spike_time, unsigned int* num_spike_syn, int* num_spike_neur, int t, int Nneur, int Ncon){
 	int s = blockDim.x*blockIdx.x + threadIdx.x;
 	if (s < Ncon){
 		int pre_neur = pre_conn[s];
@@ -106,12 +111,12 @@ __global__ void integrate_synapses(float* y, float* weight, int* delay, int* pre
 __global__ void integrate_neurons(
 		float* V_m, float* V_m_last, float* n_ch, float* m_ch, float* h_ch,
 		int* spike_time, int* num_spike_neur,
-		float* I_e, float* y, float* I_syn, float* y_psn, float* I_psn, int* psn_time, unsigned int* psn_seed,
-		float* I_syn_last, float* exp_w_p, float exp_psc, float rate,
+		float* I_e, float* y, float* I_syn, float* y_psn, float* I_psn, unsigned int* psn_time, unsigned int* psn_seed,
+		float* exp_w_p, float exp_psc, float rate,
 		int Nneur, int t, float h, float* D, float* Inoise, curandState* state, float* Vrec){
 		int n = blockIdx.x*blockDim.x + threadIdx.x;
 		if (n < Nneur){
-
+		    float I_syn_last = I_psn[n] + I_syn[n];
 			I_psn[n]  = (y_psn[n]*h + I_psn[n])*exp_psc;
 			y_psn[n] *= exp_psc;
 
@@ -122,12 +127,6 @@ __global__ void integrate_neurons(
 			// if where is poisson impulse on neuron
 			while (psn_time[n] == t){
 				y_psn[n] += exp_w_p[n];
-
-//				if (curand_uniform(&state[n]) >= 0.5f){
-//					y_psn[n] += exp_w_p[n];
-//				} else {
-//					y_psn[n] -= exp_w_p[n];
-//				}
 
 				psn_time[n] -= (int) ((1000.0f/(rate*h))*logf(get_random(psn_seed + n)));
 			}
@@ -147,7 +146,7 @@ __global__ void integrate_neurons(
 			m_channel = m_ch[n];
 			h_channel = h_ch[n];
 			Inoise_ = Inoise[n];
-			v1 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], I_syn_last[n] + Inoise[n], I_e[n], h);
+			v1 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], I_syn_last + Inoise[n], I_e[n], h);
 			n1 = hh_n_ch(V_m[n], n_ch[n], h);
 			m1 = hh_m_ch(V_m[n], m_ch[n], h);
 			h1 = hh_h_ch(V_m[n], h_ch[n], h);
@@ -158,7 +157,7 @@ __global__ void integrate_neurons(
 			h_ch[n] = h_channel + h1/2.0f;
 			Inoise[n] = Inoise_ + ns1/2.0f;
 
-			v2 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], (I_syn[n] + I_psn[n] + I_syn_last[n])/2.0f + Inoise[n] , I_e[n], h);
+			v2 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], (I_syn[n] + I_psn[n] + I_syn_last)/2.0f + Inoise[n] , I_e[n], h);
 			n2 = hh_n_ch(V_m[n], n_ch[n], h);
 			m2 = hh_m_ch(V_m[n], m_ch[n], h);
 			h2 = hh_h_ch(V_m[n], h_ch[n], h);
@@ -170,7 +169,7 @@ __global__ void integrate_neurons(
 			Inoise[n] = Inoise_ + ns2/2.0f;
 
 
-			v3 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], (I_syn[n] + I_psn[n] + I_syn_last[n])/2.0f + Inoise[n], I_e[n], h);
+			v3 = hh_Vm(V_m[n], n_ch[n], m_ch[n], h_ch[n], (I_syn[n] + I_psn[n] + I_syn_last)/2.0f + Inoise[n], I_e[n], h);
 			n3 = hh_n_ch(V_m[n], n_ch[n], h);
 			m3 = hh_m_ch(V_m[n], m_ch[n], h);
 			h3 = hh_h_ch(V_m[n], h_ch[n], h);
@@ -202,13 +201,12 @@ __global__ void integrate_neurons(
 
 			// checking if there's spike on neuron
 			if (V_m[n] > V_peak && V_mem > V_m[n] && V_m_last[n] <= V_mem){
-				if (t - spike_time[Nneur*(num_spike_neur[n] - 1) + n] > 5.0f/h || num_spike_neur[n] == 0){
+				if (num_spike_neur[n] == 0 || t - spike_time[Nneur*(num_spike_neur[n] - 1) + n] > 5.0f/h){
 					spike_time[Nneur*num_spike_neur[n] + n] = t;
 					num_spike_neur[n]++;
 				}
 			}
 			V_m_last[n] = V_mem;
-			I_syn_last[n] = I_syn[n] + I_psn[n];
 #ifdef OSCILL_SAVE
 			if (t % recInt == 0){
 				Vrec[Nneur*(t % T_sim_partial/recInt) + n] = V_m[n];
@@ -235,15 +233,16 @@ int main(int argc, char* argv[]){
     int deviceCount = 0;
     cudaGetDeviceCount(&deviceCount);
     switch (deviceCount){
+        // @TODO hardcode! 3 - number of GPU devices on each node of Lobachevsky Supercomputer
         case 3: cudaSetDevice(world_rank % 3); break;
         case 1: cudaSetDevice(0); break;
         default: exit(EXIT_FAILURE);
     }
     I_e += dI_e*world_rank;
-    sprintf(f_name, "%s/N_%i_rate_%.1f_w_n_%.1f_Ie_%.2f", f_name, W_P_BUND_SZ, rate, w_n, I_e);
 #else
     cudaSetDevice(0);
 #endif
+    sprintf(f_name, "%s/N_%i_rate_%.1f_w_n_%.1f_Ie_%.2f", f_name, W_P_BUND_SZ, rate, w_n, I_e);
 
     exp_psc = expf(-h/tau_psc);
 	time_part_syn = 10.0f/h;
@@ -255,13 +254,15 @@ int main(int argc, char* argv[]){
 #ifdef OSCILL_SAVE
 	clear_oscill_file();
 #endif
-	init_poisson<<<dim3(Nneur/NEUR_BLOCK_SIZE + 1), dim3(NEUR_BLOCK_SIZE)>>>(psn_times_dev, psn_seeds_dev, seed, rate, h, Nneur, W_P_BUND_SZ);
+	if (strcmp(ivp_fname, "") == 0){
+        init_poisson<<<dim3(Nneur/NEUR_BLOCK_SIZE + 1), dim3(NEUR_BLOCK_SIZE)>>>(psn_times_dev, psn_seeds_dev, seed, rate, h, Nneur, W_P_BUND_SZ);
+	}
 	init_noise<<<dim3(Nneur/NEUR_BLOCK_SIZE + 1), dim3(NEUR_BLOCK_SIZE)>>>(noise_states_dev, Inoise_dev, Ds_dev, seed, Nneur, W_P_BUND_SZ);
 
 	time_t curr_time = time(0);
     char* st = asctime(localtime(&curr_time));
 	cout << "Start: for rank: " << world_rank << " " << st << endl;
-    for (unsigned int t = 1; t < T_sim; t++){
+    for (unsigned int t = Tstart; t < T_sim; t++){
 #ifdef OSCILL_SAVE
 		cudaDeviceSynchronize();
     	if (t % T_sim_partial == 0){
@@ -270,7 +271,7 @@ int main(int argc, char* argv[]){
     	}
 #endif
 		integrate_neurons<<<dim3((Nneur + NEUR_BLOCK_SIZE - 1)/NEUR_BLOCK_SIZE), dim3(NEUR_BLOCK_SIZE)>>>(V_ms_dev, V_ms_last_dev, n_chs_dev, m_chs_dev, h_chs_dev, spike_times_dev, num_spikes_neur_dev,
-				I_es_dev, ys_dev, I_syns_dev, y_psns_dev, I_psns_dev, psn_times_dev, psn_seeds_dev, I_last_dev, exp_w_p_dev, exp_psc, rate, Nneur, t, h,
+				I_es_dev, ys_dev, I_syns_dev, y_psns_dev, I_psns_dev, psn_times_dev, psn_seeds_dev, exp_w_p_dev, exp_psc, rate, Nneur, t, h,
 				Ds_dev, Inoise_dev, noise_states_dev, Vrec_dev);
 		cudaDeviceSynchronize();
 		integrate_synapses<<<dim3((Ncon + SYN_BLOCK_SIZE -1)/SYN_BLOCK_SIZE), dim3(SYN_BLOCK_SIZE)>>>(ys_dev, weights_dev, delays_dev, pre_conns_dev, post_conns_dev,
@@ -283,6 +284,7 @@ int main(int argc, char* argv[]){
 			CUDA_CHECK_RETURN(cudaMemcpy(num_spikes_syn, num_spikes_syn_dev, Ncon*sizeof(int), cudaMemcpyDeviceToHost));
 
 			swap_spikes();
+			saveIVP2Fl();
 			CUDA_CHECK_RETURN(cudaMemcpy(spike_times_dev, spike_times, Nneur*sizeof(int)*T_sim_partial/time_part_syn, cudaMemcpyHostToDevice));
 			CUDA_CHECK_RETURN(cudaMemcpy(num_spikes_neur_dev, num_spikes_neur, Nneur*sizeof(int), cudaMemcpyHostToDevice));
 			CUDA_CHECK_RETURN(cudaMemcpy(num_spikes_syn_dev, num_spikes_syn, Ncon*sizeof(int), cudaMemcpyHostToDevice));
@@ -319,7 +321,6 @@ void init_conns_from_file(){
 	con_file.open(par_f_name);
 	con_file >> Ncon_part;
 	Ncon = Ncon_part*W_P_NUM_BUND*NUM_BUND;
-//	cerr << "Number of connections: " << Ncon << endl;
 	malloc_conn_memory();
 	float delay;
 	int pre, post;
@@ -335,10 +336,17 @@ void init_conns_from_file(){
 		}
 	}
 	con_file.close();
+    if (strcmp(ivp_fname, "") != 0){
+        cerr <<  "Loading connections from file" << endl;
+        char fname[500];
+        sprintf(fname, "%s/num_sp_syn", ivp_fname);
+        file2array(fname, Ncon, num_spikes_syn);
+    }
 }
 
 void init_neurs_from_file(){
 	malloc_neur_memory();
+
 	for (unsigned int bund = 0; bund < W_P_NUM_BUND; bund++){
 		for (unsigned int n = 0; n < W_P_BUND_SZ; n++){
 			unsigned int idx = W_P_BUND_SZ*bund + n;
@@ -369,6 +377,48 @@ void init_neurs_from_file(){
 			}
 		}
 	}
+	if (strcmp(ivp_fname, "") != 0){
+	    char fname[500];
+        cerr << "Loading neurons from files" << endl;
+
+	    sprintf(fname, "%s/Vms", ivp_fname);
+	    raw2array(fname, Nneur, V_ms);
+	    sprintf(fname, "%s/Vms_last", ivp_fname);
+	    raw2array(fname, Nneur, V_ms_last);
+
+	    sprintf(fname, "%s/n_chs", ivp_fname);
+	    raw2array(fname, Nneur, n_chs);
+	    sprintf(fname, "%s/m_chs", ivp_fname);
+	    raw2array(fname, Nneur, m_chs);
+	    sprintf(fname, "%s/h_chs", ivp_fname);
+	    raw2array(fname, Nneur, h_chs);
+
+	    sprintf(fname, "%s/ys", ivp_fname);
+	    raw2array(fname, Nneur, ys);
+	    sprintf(fname, "%s/I_syns", ivp_fname);
+	    raw2array(fname, Nneur, I_syns);
+
+	    sprintf(fname, "%s/I_psns", ivp_fname);
+	    raw2array(fname, Nneur, I_psns);
+	    sprintf(fname, "%s/y_psns", ivp_fname);
+	    raw2array(fname, Nneur, y_psns);
+
+	    sprintf(fname, "%s/psn_times", ivp_fname);
+	    file2array(fname, Nneur, psn_times);
+	    sprintf(fname, "%s/psn_seeds", ivp_fname);
+	    file2array(fname, Nneur, psn_seeds);
+
+	    sprintf(fname, "%s/spike_times", ivp_fname);
+	    FILE* ivpFl = fopen(fname, "r");
+
+	    for (unsigned int n = 0; n < Nneur; n++){
+	        fscanf(ivpFl, "%i", &num_spikes_neur[n]);
+	        for (int sp_n = 0; sp_n < num_spikes_neur[n]; sp_n++){
+	            fscanf(ivpFl, " %i", &spike_times[Nneur*sp_n + n]);
+	        }
+	    }
+	    fclose(ivpFl);
+	}
 }
 
 void save2HOST(){
@@ -389,7 +439,7 @@ void save2HOST(){
 
 void swap_spikes(){
 	int* spike_times_temp = new int[Nneur*T_sim_partial/time_part_syn];
-	int* min_spike_nums_syn = new int[Nneur];
+	unsigned int* min_spike_nums_syn = new unsigned int[Nneur];
 	for (unsigned int n = 0; n < Nneur; n++){
 		min_spike_nums_syn[n] = INT_MAX;
 	}
@@ -414,7 +464,7 @@ void swap_spikes(){
 		bund_idx = w_p_bund_neur/BUND_SZ;
 		neur = w_p_bund_neur % BUND_SZ;
 		idx = NUM_BUND*w_p_bund_idx + bund_idx;
-		for (int sp_n = 0; sp_n < min_spike_nums_syn[n]; sp_n++){
+		for (unsigned int sp_n = 0; sp_n < min_spike_nums_syn[n]; sp_n++){
 //		for (unsigned int sp_n = 0; sp_n < num_spikes_neur[n]; sp_n++){
 			res_senders[W_P_NUM_BUND*NUM_BUND*num_spk_in_bund[idx] + idx] = neur;
 			res_times[W_P_NUM_BUND*NUM_BUND*num_spk_in_bund[idx] + idx] = spike_times[Nneur*sp_n + n]*h;
@@ -437,6 +487,99 @@ void swap_spikes(){
 	delete[] spike_times;
 	delete[] min_spike_nums_syn;
 	spike_times = spike_times_temp;
+}
+
+void saveIVP2Fl(){
+    char ivpFl_name[500];
+    sprintf(ivpFl_name, "%s/%i/spike_times", f_name, One);
+    FILE* ivpFl = fopen(ivpFl_name, "w");
+
+    for (unsigned int n = 0; n < Nneur; n++){
+        fprintf(ivpFl, "%i", num_spikes_neur[n]);
+        for (int sp_n = 0; sp_n < num_spikes_neur[n]; sp_n++){
+            fprintf(ivpFl, " %i", spike_times[Nneur*sp_n + n]);
+        }
+        fprintf(ivpFl, "\n");
+    }
+    fclose(ivpFl);
+
+    sprintf(ivpFl_name, "%s/%i/num_sp_syn", f_name, One);
+    array2file(ivpFl_name, Ncon, num_spikes_syn);
+
+    size_t n_fsize = Nneur*sizeof(float);
+
+    cudaMemcpy(V_ms, V_ms_dev, n_fsize, cudaMemcpyDeviceToHost);
+    cudaMemcpy(V_ms_last, V_ms_last_dev, n_fsize, cudaMemcpyDeviceToHost);
+    cudaMemcpy(m_chs, m_chs_dev, n_fsize, cudaMemcpyDeviceToHost);
+    cudaMemcpy(n_chs, n_chs_dev, n_fsize, cudaMemcpyDeviceToHost);
+    cudaMemcpy(h_chs, h_chs_dev, n_fsize, cudaMemcpyDeviceToHost);
+
+    cudaMemcpy(ys, ys_dev, n_fsize, cudaMemcpyDeviceToHost);
+    cudaMemcpy(I_syns, I_syns_dev, n_fsize, cudaMemcpyDeviceToHost);
+
+    cudaMemcpy(I_psns, I_psns_dev, n_fsize, cudaMemcpyDeviceToHost);
+    cudaMemcpy(y_psns, y_psns_dev, n_fsize, cudaMemcpyDeviceToHost);
+
+    cudaMemcpy(psn_times, psn_times_dev, Nneur*sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(psn_seeds, psn_seeds_dev, Nneur*sizeof(unsigned int), cudaMemcpyDeviceToHost);
+
+    sprintf(ivpFl_name, "%s/%i/Vms", f_name, One);
+    raw2file(ivpFl_name, Nneur, V_ms);
+    sprintf(ivpFl_name, "%s/%i/Vms_last", f_name, One);
+    raw2file(ivpFl_name, Nneur, V_ms_last);
+
+    sprintf(ivpFl_name, "%s/%i/m_chs", f_name, One);
+    raw2file(ivpFl_name, Nneur, m_chs);
+    sprintf(ivpFl_name, "%s/%i/n_chs", f_name, One);
+    raw2file(ivpFl_name, Nneur, n_chs);
+    sprintf(ivpFl_name, "%s/%i/h_chs", f_name, One);
+    raw2file(ivpFl_name, Nneur, h_chs);
+
+    sprintf(ivpFl_name, "%s/%i/ys", f_name, One);
+    raw2file(ivpFl_name, Nneur, ys);
+    sprintf(ivpFl_name, "%s/%i/I_syns", f_name, One);
+    raw2file(ivpFl_name, Nneur, I_syns);
+
+    sprintf(ivpFl_name, "%s/%i/I_psns", f_name, One);
+    raw2file(ivpFl_name, Nneur, I_psns);
+    sprintf(ivpFl_name, "%s/%i/y_psns", f_name, One);
+    raw2file(ivpFl_name, Nneur, y_psns);
+
+    sprintf(ivpFl_name, "%s/%i/psn_times", f_name, One);
+    array2file(ivpFl_name, Nneur, psn_times);
+
+    sprintf(ivpFl_name, "%s/%i/psn_seeds", f_name, One);
+    array2file(ivpFl_name, Nneur, psn_seeds);
+
+    One += 1;
+}
+
+void array2file(char* fl_name, unsigned int N, unsigned int arr[]){
+    FILE* fl = fopen(fl_name, "w");
+    for (unsigned int i = 0; i < N; i++){
+        fprintf(fl, "%u\n", arr[i]);
+    }
+    fclose(fl);
+}
+
+void file2array(char* fl_name, unsigned int N, unsigned int arr[]){
+    FILE* fl = fopen(fl_name, "r");
+    for (unsigned int i = 0; i < N; i++){
+        fscanf(fl, "%u", &arr[i]);
+    }
+    fclose(fl);
+}
+
+void raw2file(char* fl_name, unsigned int N, float arr[]){
+    FILE* fl = fopen(fl_name, "w");
+    fwrite(arr, sizeof(float), N, fl);
+    fclose(fl);
+}
+
+void raw2array(char* fl_name, unsigned int N, float arr[]){
+    FILE* fl = fopen(fl_name, "r");
+    fread(arr, sizeof(float), N, fl);
+    fclose(fl);
 }
 
 void clearResFiles(){
@@ -489,7 +632,8 @@ void malloc_neur_memory(){
 	y_psns = new float[Nneur]();
 	I_psns = new float[Nneur]();
 
-	I_last = new float[Nneur]();
+	psn_times = new unsigned int[Nneur]();
+	psn_seeds = new unsigned int[Nneur]();
 
 	exp_w_p = new float[Nneur];
 
@@ -515,7 +659,7 @@ void malloc_conn_memory(){
 	pre_conns = new int[Ncon];
 	post_conns = new int[Ncon];
 	delays = new int[Ncon];
-	num_spikes_syn = new int[Ncon]();
+	num_spikes_syn = new unsigned int[Ncon]();
 }
 
 void copy2device(){
@@ -537,8 +681,6 @@ void copy2device(){
 	cudaMalloc((void**) &I_syns_dev, n_fsize);
 	cudaMalloc((void**) &y_psns_dev, n_fsize);
 	cudaMalloc((void**) &I_psns_dev, n_fsize);
-
-	cudaMalloc((void**) &I_last_dev, n_fsize);
 
 	cudaMalloc((void**) &exp_w_p_dev, n_fsize);
 	cudaMalloc((void**) &spike_times_dev, spike_times_sz);
@@ -577,13 +719,14 @@ void copy2device(){
 	cudaMemcpy(I_psns_dev, I_psns, n_fsize, cudaMemcpyHostToDevice);
 	cudaMemcpy(y_psns_dev, y_psns, n_fsize, cudaMemcpyHostToDevice);
 
-
-	cudaMemcpy(I_last_dev, I_last, n_fsize, cudaMemcpyHostToDevice);
 	cudaMemcpy(exp_w_p_dev, exp_w_p, n_fsize, cudaMemcpyHostToDevice);
 	cudaMemcpy(Ds_dev, Ds_host, n_fsize, cudaMemcpyHostToDevice);
 
 	cudaMemcpy(spike_times_dev, spike_times, spike_times_sz, cudaMemcpyHostToDevice);
 	cudaMemcpy(num_spikes_neur_dev, num_spikes_neur, n_isize, cudaMemcpyHostToDevice);
+
+    cudaMemcpy(psn_times_dev, psn_times, n_isize, cudaMemcpyHostToDevice);
+    cudaMemcpy(psn_seeds_dev, psn_seeds, Nneur*sizeof(unsigned int), cudaMemcpyHostToDevice);
 
 	cudaMemcpy(weights_dev, weights, s_fsize, cudaMemcpyHostToDevice);
 	cudaMemcpy(pre_conns_dev, pre_conns, s_isize, cudaMemcpyHostToDevice);
@@ -612,6 +755,8 @@ void init_params(int argc, char* argv[]){
 			case 13: str >> I_e; break;
 			case 14: str >> dI_e; break;
 			case 15: str >> gaussNoiseFlag; break;
+			case 16: str >> ivp_fname; break;
+			case 17: str >> Tstart; break;
 		}
 	}
 	W_P_BUND_SZ = Nneur/W_P_NUM_BUND;

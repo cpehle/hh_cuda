@@ -35,8 +35,8 @@
 #define V_peak 25.0f
 
 #define tau_cor 2.0f
-#define recInt 50
-#define T_sim_partial 100000 // in time frames
+#define recInt 5
+#define T_sim_partial 2000 // in time frames
 
 unsigned int time_part_syn;
 // maximum part of simulating time for which is allocated memory
@@ -49,7 +49,7 @@ unsigned int time_part_syn;
 // if greater then fragmentation becomes less,
 // but more RAM is used
 // in frames
-unsigned int SaveIntervalTIdx = 100000;
+unsigned int SaveIntervalTIdx = 10000;
 
 float tau_psc = 0.2f;
 float exp_psc;
@@ -67,7 +67,8 @@ float* I_syns;   // input synaptic current
 float* y_psns;   // neurotransmitter concentration induced by poisson noise
 float* I_psns;   // input current induced by poisson
 
-float* I_last;   // previous time step current value
+unsigned int* psn_times;
+unsigned int* psn_seeds;
 
 float *exp_w_p;
 
@@ -86,14 +87,12 @@ float* I_syns_dev;
 float* y_psns_dev;
 float* I_psns_dev;
 
-float* I_last_dev;
-
 float *exp_w_p_dev;
 
 int* spike_times_dev;
 int* num_spikes_neur_dev;
 
-int* psn_times_dev;
+unsigned int* psn_times_dev;
 unsigned int* psn_seeds_dev;
 
 float* Ds_dev;
@@ -105,13 +104,13 @@ float* weights;
 int* pre_conns;
 int* post_conns;
 int* delays; // delays in integration steps
-int* num_spikes_syn; // number of processed spikes by each synapse
+unsigned int* num_spikes_syn; // number of processed spikes by each synapse
 
 float* weights_dev;
 int* pre_conns_dev;
 int* post_conns_dev;
 int* delays_dev;
-int* num_spikes_syn_dev;
+unsigned int* num_spikes_syn_dev;
 
 float* res_times;
 int* res_senders;
@@ -145,6 +144,16 @@ void copy2device();
 void init_poisson();
 
 void clear_files();
+
+void saveIVP2Fl();
+
+void array2file(char* fl_name, unsigned int N, unsigned int arr[]);
+
+void file2array(char* fl_name, unsigned int N, unsigned int arr[]);
+
+void raw2file(char* fl_name, unsigned int N, float arr[]);
+
+void raw2array(char* fl_name, unsigned int N, float arr[]);
 
 void save_oscill(int tm, bool lastFlag=false);
 
