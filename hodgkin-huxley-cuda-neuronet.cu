@@ -6,7 +6,9 @@
 #include <cstdlib>
 #include <climits>
 #include <ctime>
+#ifdef WITH_MPI
 #include <mpi.h>
+#endif
 #include "hodgkin-huxley-cuda-neuronet.h"
 
 unsigned int seed = 1;
@@ -308,9 +310,9 @@ int main(int argc, char* argv[]){
 
 	save2HOST();
 	apndResToFile();
-
+#ifdef WITH_MPI
 	MPI_Finalize();
-
+#endif
 	return 0;
 }
 
