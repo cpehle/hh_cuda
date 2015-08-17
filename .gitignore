@@ -2,10 +2,11 @@
 *.pyc
 *.npy
 *.odt
+*.o
 .*
 */
 !.gitignore
-hh-cuda-*
+hh-cuda
 !nn_params_2.csv
 !nn_params_100.csv
 !nn_params_10.csv
