@@ -477,7 +477,7 @@ void swap_spikes(){
 //		for (unsigned int sp_n = num_spikes_neur[n]; sp_n < num_spikes_neur[n]; sp_n++){
 			spike_times_temp[Nneur*(sp_n - min_spike_nums_syn[n]) + n] = spike_times[Nneur*sp_n + n];
 		}
-		// @TODO В случае если считаем для несвязанный нейронов нужно убрать это
+		// @TODO В случае если считаем для несвязанных нейронов нужно убрать это
 		 num_spikes_neur[n] -= min_spike_nums_syn[n];
 //		 num_spikes_neur[n] = 0;
 	}
@@ -552,7 +552,6 @@ void saveIVP2Fl(){
 
     sprintf(ivpFl_name, "%s/%i/psn_seeds", f_name, One);
     array2file(ivpFl_name, Nneur, psn_seeds);
-
     One += 1;
 }
 
@@ -598,6 +597,7 @@ void clearResFiles(){
 			fclose(file);
 		}
 	}
+ 	delete[] name;
 }
 
 void apndResToFile(){
@@ -619,6 +619,7 @@ void apndResToFile(){
 			fclose(file);
 		}
 	}
+ 	delete[] name;
 }
 
 void malloc_neur_memory(){
@@ -776,6 +777,7 @@ void clear_oscill_file(){
 		file = fopen(name, "w");
 		fclose(file);
 	}
+ 	delete[] name;
 }
 
 void save_oscill(int tm, bool lastFlag /*lastFlag=false*/){
@@ -783,9 +785,9 @@ void save_oscill(int tm, bool lastFlag /*lastFlag=false*/){
 	if (lastFlag) {
 		Tmax = ((T_sim - 1) % T_sim_partial)/recInt;
 	}
-	int Tstart = 0;
+	int Tstart_ = 0;
 	if (tm == T_sim_partial){
-	    Tstart = 1;
+	    Tstart_ = 1;
 	}
 	FILE* file;
 	stringstream s;
@@ -795,9 +797,10 @@ void save_oscill(int tm, bool lastFlag /*lastFlag=false*/){
 		s << f_name << "/" << "N_" << j << "_oscill" << endl;
 		s >> name;
 		file = fopen(name, "a+");
-		for (int t = Tstart; t < Tmax; t++){
+		for (int t = Tstart_; t < Tmax; t++){
 			fwrite(&Vrec[Nneur*t + j], sizeof(float), 1, file);
 		}
 		fclose(file);
 	}
+ 	delete[] name;
 }

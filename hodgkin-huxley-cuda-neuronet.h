@@ -36,7 +36,7 @@
 
 #define tau_cor 2.0f
 #define recInt 5
-#define T_sim_partial 2000 // in time frames
+#define T_sim_partial 800 // in time frames
 
 unsigned int time_part_syn;
 // maximum part of simulating time for which is allocated memory
@@ -49,7 +49,7 @@ unsigned int time_part_syn;
 // if greater then fragmentation becomes less,
 // but more RAM is used
 // in frames
-unsigned int SaveIntervalTIdx = 10000;
+unsigned int SaveIntervalTIdx = 8000;
 
 float tau_psc = 0.2f;
 float exp_psc;
