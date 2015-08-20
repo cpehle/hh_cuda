@@ -122,15 +122,14 @@ __global__ void integrate_neurons(
 			I_psn[n]  = (y_psn[n]*h + I_psn[n])*exp_psc;
 			y_psn[n] *= exp_psc;
 
-
 			I_syn[n]  = (y[n]*h + I_syn[n])*exp_psc;
 			y[n] *= exp_psc;
 
 			// if where is poisson impulse on neuron
-			while (psn_time[n] == t){
+			if (psn_time[n] == t){
 				y_psn[n] += exp_w_p[n];
 
-				psn_time[n] -= (int) ((1000.0f/(rate*h))*logf(get_random(psn_seed + n)));
+				psn_time[n] += 1 + (unsigned int) (-(1000.0f/(rate*h))*logf(get_random(psn_seed + n)));
 			}
 			float V_mem, n_channel, m_channel, h_channel;
 			float v1, v2, v3, v4;
@@ -244,7 +243,7 @@ int main(int argc, char* argv[]){
 #else
     cudaSetDevice(0);
 #endif
-    sprintf(f_name, "%s/N_%i_rate_%.1f_w_n_%.1f_Ie_%.2f", f_name, W_P_BUND_SZ, rate, w_n, I_e);
+    sprintf(f_name, "%s/N_%i_rate_%.1f_w_n_%.1f_Ie_%.2f", f_name, BUND_SZ, rate, w_n, I_e);
 
     exp_psc = expf(-h/tau_psc);
 	time_part_syn = 10.0f/h;
@@ -286,7 +285,7 @@ int main(int argc, char* argv[]){
 			CUDA_CHECK_RETURN(cudaMemcpy(num_spikes_syn, num_spikes_syn_dev, Ncon*sizeof(int), cudaMemcpyDeviceToHost));
 
 			swap_spikes();
-			saveIVP2Fl();
+//			saveIVP2Fl();
 			CUDA_CHECK_RETURN(cudaMemcpy(spike_times_dev, spike_times, Nneur*sizeof(int)*T_sim_partial/time_part_syn, cudaMemcpyHostToDevice));
 			CUDA_CHECK_RETURN(cudaMemcpy(num_spikes_neur_dev, num_spikes_neur, Nneur*sizeof(int), cudaMemcpyHostToDevice));
 			CUDA_CHECK_RETURN(cudaMemcpy(num_spikes_syn_dev, num_spikes_syn, Ncon*sizeof(int), cudaMemcpyHostToDevice));
