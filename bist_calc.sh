@@ -13,8 +13,8 @@ seed_nbund=10
 seed=0
 Ie=5.26
 
-path='/home/esir_p/1'
-bin_path='/home/esir_p/1'
+path='/home/esir_p/hh_cuda'
+bin_path='/home/esir_p/hh_cuda'
 par_fname="$bin_path/nn_params_$Nneur.csv"
 let "Ntotal = Nneur*w_p_nbund*seed_nbund"
 

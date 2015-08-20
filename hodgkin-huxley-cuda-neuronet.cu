@@ -239,7 +239,8 @@ int main(int argc, char* argv[]){
         case 1: cudaSetDevice(0); break;
         default: exit(EXIT_FAILURE);
     }
-    I_e += dI_e*world_rank;
+//    I_e += dI_e*world_rank;
+    seed += 150*world_rank;
 #else
     cudaSetDevice(0);
 #endif
