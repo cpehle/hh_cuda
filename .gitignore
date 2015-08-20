@@ -3,6 +3,7 @@
 *.npy
 *.odt
 *.o
+*.out
 .*
 */
 !.gitignore
