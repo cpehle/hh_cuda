@@ -583,16 +583,35 @@ void raw2array(char* fl_name, unsigned int N, float arr[]){
     fclose(fl);
 }
 
+//void clearResFiles(){
+//	FILE* file;
+//	stringstream s;
+//	s.precision(3);
+//	char* name = new char[500];
+//	for (unsigned int i = 0; i < W_P_NUM_BUND; i++){
+//		for (unsigned int j = 0; j < NUM_BUND; j++){
+//			s << f_name << "/" << "seed_" << j + seed
+//					    << "/w_p_" << fixed << w_p_start + (w_p_stop - w_p_start)*i/W_P_NUM_BUND << endl;
+//			s >> name;
+//			file = fopen(name, "w");
+//			fclose(file);
+//		}
+//	}
+// 	delete[] name;
+//}
+
 void clearResFiles(){
 	FILE* file;
-	stringstream s;
-	s.precision(3);
 	char* name = new char[500];
 	for (unsigned int i = 0; i < W_P_NUM_BUND; i++){
 		for (unsigned int j = 0; j < NUM_BUND; j++){
-			s << f_name << "/" << "seed_" << j + seed
-					    << "/w_p_" << fixed << w_p_start + (w_p_stop - w_p_start)*i/W_P_NUM_BUND << endl;
-			s >> name;
+			float w_p = w_p_start + (w_p_stop - w_p_start)*i/W_P_NUM_BUND;
+
+			sprintf(name, "%s/seed_%i/w_p_%.3f_senders", f_name, seed + j, w_p);
+			file = fopen(name, "w");
+			fclose(file);
+
+			sprintf(name, "%s/seed_%i/w_p_%.3f_times", f_name, seed + j, w_p);
 			file = fopen(name, "w");
 			fclose(file);
 		}
@@ -600,26 +619,54 @@ void clearResFiles(){
  	delete[] name;
 }
 
+//void apndResToFile(){
+//	FILE* file;
+//	stringstream s;
+//	s.precision(3);
+//	char* name = new char[500];
+//	for (unsigned int i = 0; i < W_P_NUM_BUND; i++){
+//		for (unsigned int j = 0; j < NUM_BUND; j++){
+//			s << f_name << "/" << "seed_" << j + seed
+//					    << "/w_p_" << fixed << w_p_start + (w_p_stop - w_p_start)*i/W_P_NUM_BUND << endl;
+//			s >> name;
+//			file = fopen(name, "a+");
+//			int idx = NUM_BUND*i + j;
+//			for (int spk = 0; spk < num_spk_in_bund[idx]; spk++){
+//				fprintf(file, "%i\t%.3f\n", res_senders[W_P_NUM_BUND*NUM_BUND*spk + idx], res_times[W_P_NUM_BUND*NUM_BUND*spk + idx]);
+//			}
+//			num_spk_in_bund[idx] = 0;
+//			fclose(file);
+//		}
+//	}
+// 	delete[] name;
+//}
+
 void apndResToFile(){
-	FILE* file;
-	stringstream s;
-	s.precision(3);
-	char* name = new char[500];
+	FILE* file_times;
+	FILE* file_senders;
+	char* name_times = new char[500];
+	char* name_senders = new char[500];
 	for (unsigned int i = 0; i < W_P_NUM_BUND; i++){
 		for (unsigned int j = 0; j < NUM_BUND; j++){
-			s << f_name << "/" << "seed_" << j + seed
-					    << "/w_p_" << fixed << w_p_start + (w_p_stop - w_p_start)*i/W_P_NUM_BUND << endl;
-			s >> name;
-			file = fopen(name, "a+");
+			float w_p = w_p_start + (w_p_stop - w_p_start)*i/W_P_NUM_BUND;
+
+			sprintf(name_times, "%s/seed_%i/w_p_%.3f_times", f_name, seed + j, w_p);
+			sprintf(name_senders, "%s/seed_%i/w_p_%.3f_senders", f_name, seed + j, w_p);
+
+			file_times = fopen(name_times, "a+");
+			file_senders = fopen(name_senders, "a+");
 			int idx = NUM_BUND*i + j;
 			for (int spk = 0; spk < num_spk_in_bund[idx]; spk++){
-				fprintf(file, "%i\t%.3f\n", res_senders[W_P_NUM_BUND*NUM_BUND*spk + idx], res_times[W_P_NUM_BUND*NUM_BUND*spk + idx]);
+				fwrite(&res_times[W_P_NUM_BUND*NUM_BUND*spk + idx], sizeof(float), 1, file_times);
+				fwrite(&res_senders[W_P_NUM_BUND*NUM_BUND*spk + idx], sizeof(int), 1, file_senders);
 			}
 			num_spk_in_bund[idx] = 0;
-			fclose(file);
+			fclose(file_times);
+			fclose(file_senders);
 		}
 	}
- 	delete[] name;
+ 	delete[] name_times;
+ 	delete[] name_senders;
 }
 
 void malloc_neur_memory(){
