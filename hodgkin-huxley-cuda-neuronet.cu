@@ -129,7 +129,8 @@ __global__ void integrate_neurons(
 			if (psn_time[n] == t){
 				y_psn[n] += exp_w_p[n];
 
-				psn_time[n] += 1 + (unsigned int) (-(1000.0f/(rate*h))*logf(get_random(psn_seed + n)));
+// 				psn_time[n] += 1 + (unsigned int) (-(1000.0f/(rate*h))*logf(get_random(psn_seed + n)));
+				psn_time[n] += 1 + (unsigned int) (-(1000.0f/(rate*h))*(curand_uniform(state + n)));
 			}
 			float V_mem, n_channel, m_channel, h_channel;
 			float v1, v2, v3, v4;
@@ -139,7 +140,8 @@ __global__ void integrate_neurons(
 			float Inoise_;
 			float ns1, ns2, ns3, ns4;
 
-			float dNoise = sqrtf(2.0f*h*D[n])*curand_normal(&state[n]);
+			float dNoise = 0.0f;
+// 			float dNoise = sqrtf(2.0f*h*D[n])*curand_normal(&state[n]);
 //			Inoise[n] = sqrtf(h*D[n])*curand_normal(&state[n])/h;
 
 			V_mem = V_m[n];
