@@ -90,7 +90,7 @@ __global__ void init_noise(curandState* state, float* Inoise, float* D, unsigned
 	int neur = n % BundleSize;
 	if (n < Nneur){
 		curand_init(0, neur + seed, 0, &state[n]);
-		Inoise[n] += sqrt(D[n]/tau_cor)*curand_normal(&state[n]);
+//		Inoise[n] += sqrt(D[n]/tau_cor)*curand_normal(&state[n]);
 	}
 }
 
@@ -130,7 +130,7 @@ __global__ void integrate_neurons(
 				y_psn[n] += exp_w_p[n];
 
 // 				psn_time[n] += 1 + (unsigned int) (-(1000.0f/(rate*h))*logf(get_random(psn_seed + n)));
-				psn_time[n] += 1 + (unsigned int) (-(1000.0f/(rate*h))*(curand_uniform(state + n)));
+				psn_time[n] += 1 + (unsigned int) (-(1000.0f/(rate*h))*logf(curand_uniform(&state[n])));
 			}
 			float V_mem, n_channel, m_channel, h_channel;
 			float v1, v2, v3, v4;
