@@ -81,7 +81,7 @@ __global__ void init_poisson(unsigned int* psn_time, unsigned int *psn_seed, uns
 	int neur = n % BundleSize;
 	if (n < Nneur){
 		psn_seed[n] = 100000*(seed + neur + 1);
-		psn_time[n] = -(1000.0f/(h*rate))*logf(get_random(psn_seed + n));
+		psn_time[n] = 1 -(1000.0f/(h*rate))*logf(get_random(psn_seed + n));
 	}
 }
 
@@ -128,9 +128,8 @@ __global__ void integrate_neurons(
 			// if where is poisson impulse on neuron
 			if (psn_time[n] == t){
 				y_psn[n] += exp_w_p[n];
-
-// 				psn_time[n] += 1 + (unsigned int) (-(1000.0f/(rate*h))*logf(get_random(psn_seed + n)));
-				psn_time[n] += 1 + (unsigned int) (-(1000.0f/(rate*h))*logf(curand_uniform(&state[n])));
+ 				psn_time[n] += 1 + (unsigned int) (-(1000.0f/(rate*h))*logf(get_random(psn_seed + n)));
+//				psn_time[n] += 1 + (unsigned int) (-(1000.0f/(rate*h))*logf(curand_uniform(&state[n])));
 			}
 			float V_mem, n_channel, m_channel, h_channel;
 			float v1, v2, v3, v4;
@@ -212,7 +211,8 @@ __global__ void integrate_neurons(
 			V_m_last[n] = V_mem;
 #ifdef OSCILL_SAVE
 			if (t % recInt == 0){
-				Vrec[Nneur*(t % T_sim_partial/recInt) + n] = V_m[n];
+//				Vrec[Nneur*(t % T_sim_partial/recInt) + n] = V_m[n];
+				Vrec[Nneur*(t % T_sim_partial/recInt) + n] = I_psn[n];
 			}
 #endif
 		}
