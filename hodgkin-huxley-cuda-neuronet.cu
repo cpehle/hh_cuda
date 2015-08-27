@@ -211,8 +211,7 @@ __global__ void integrate_neurons(
 			V_m_last[n] = V_mem;
 #ifdef OSCILL_SAVE
 			if (t % recInt == 0){
-//				Vrec[Nneur*(t % T_sim_partial/recInt) + n] = V_m[n];
-				Vrec[Nneur*(t % T_sim_partial/recInt) + n] = I_psn[n];
+				Vrec[Nneur*(t % T_sim_partial/recInt) + n] = V_m[n];
 			}
 #endif
 		}
@@ -241,8 +240,8 @@ int main(int argc, char* argv[]){
         case 1: cudaSetDevice(0); break;
         default: exit(EXIT_FAILURE);
     }
-//    I_e += dI_e*world_rank;
-    seed += 150*world_rank;
+    I_e += dI_e*world_rank;
+//     seed += 150*world_rank;
 #else
     cudaSetDevice(0);
 #endif
