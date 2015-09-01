@@ -5,11 +5,11 @@
  *      Author: postdoc3
  */
 #include <cstring>
-#include <cuda.h>
-#include <cuda_runtime.h>
-#include <device_launch_parameters.h>
-#include <curand_kernel.h>
+//#include <cuda.h>
+//#include <cuda_runtime.h>
+//#include <device_launch_parameters.h>
 #include <iostream>
+#include "hh-kernels.h"
 
 #define CUDA_CHECK_RETURN(value) {										\
 	cudaError_t _m_cudaStat = value;									\
@@ -22,19 +22,6 @@
 #define NEUR_BLOCK_SIZE 128
 #define SYN_BLOCK_SIZE 512
 
-// neuron parameters
-#define Cm    1.0f //  inverse of membrane capacity, 1/pF
-#define g_Na  120.0f // nS
-#define g_K   36.0f
-#define g_L   .3f
-#define E_K   -77.0f
-// @TODO для нейронов в бистабильном режиме E_Na = 55.
-#define E_Na  55.0f
-//#define E_Na 50.0f
-#define E_L   -54.4f
-#define V_peak 25.0f
-
-#define tau_cor 2.0f
 #define recInt 5
 #define T_sim_partial 10000 // in time frames
 
