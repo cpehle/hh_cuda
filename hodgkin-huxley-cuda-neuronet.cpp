@@ -55,13 +55,14 @@ int main(int argc, char* argv[]){
     int deviceCount = 0;
     cudaGetDeviceCount(&deviceCount);
     switch (deviceCount){
-        // @TODO hardcode! 3 - number of GPU devices on each node of Lobachevsky Supercomputer
+        // @TODO hardcode! 2-3 - number of GPU devices on each node of Lobachevsky Supercomputer 
         case 3: cudaSetDevice(world_rank % 3); break;
+		case 2: cudaSetDevice(world_rank % 2); break;
         case 1: cudaSetDevice(0); break;
         default: exit(EXIT_FAILURE);
     }
-    I_e += dI_e*world_rank;
-//     seed += 150*world_rank;
+    //I_e += dI_e*world_rank;
+    seed += 150*world_rank;
 #else
     cudaSetDevice(0);
 #endif
@@ -393,13 +394,13 @@ void file2array(char* fl_name, unsigned int N, unsigned int arr[]){
 }
 
 void raw2file(char* fl_name, unsigned int N, float arr[]){
-    FILE* fl = fopen(fl_name, "w");
+    FILE* fl = fopen(fl_name, "wb");
     fwrite(arr, sizeof(float), N, fl);
     fclose(fl);
 }
 
 void raw2array(char* fl_name, unsigned int N, float arr[]){
-    FILE* fl = fopen(fl_name, "r");
+    FILE* fl = fopen(fl_name, "rb");
     fread(arr, sizeof(float), N, fl);
     fclose(fl);
 }
@@ -474,8 +475,8 @@ void apndResToFile(){
 			sprintf(name_times, "%s/seed_%i/w_p_%.3f_times", f_name, seed + j, w_p);
 			sprintf(name_senders, "%s/seed_%i/w_p_%.3f_senders", f_name, seed + j, w_p);
 
-			file_times = fopen(name_times, "a+");
-			file_senders = fopen(name_senders, "a+");
+			file_times = fopen(name_times, "a+b");
+			file_senders = fopen(name_senders, "a+b");
 			int idx = NUM_BUND*i + j;
 			for (int spk = 0; spk < num_spk_in_bund[idx]; spk++){
 				fwrite(&res_times[W_P_NUM_BUND*NUM_BUND*spk + idx], sizeof(float), 1, file_times);
@@ -664,7 +665,7 @@ void save_oscill(int tm, bool lastFlag /*lastFlag=false*/){
 	for (unsigned int j = 0; j < Nneur; j++){
 		s << f_name << "/" << "N_" << j << "_oscill" << endl;
 		s >> name;
-		file = fopen(name, "a+");
+		file = fopen(name, "a+b");
 		for (int t = Tstart_; t < Tmax; t++){
 			fwrite(&Vrec[Nneur*t + j], sizeof(float), 1, file);
 		}
