@@ -6,6 +6,9 @@
  */
 #include <curand_kernel.h>
 
+#define recInt 5
+#define T_sim_partial 10000 // in time frames
+
 // neuron parameters
 #define Cm_    1.0f //  inverse of membrane capacity, 1/pF
 #define g_Na  120.0f // nS
