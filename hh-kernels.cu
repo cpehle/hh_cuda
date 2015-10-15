@@ -8,6 +8,7 @@
 
 #define recInt 5
 #define T_sim_partial 10000 // in time frames
+#define Nrec 10
 
 // neuron parameters
 #define Cm_    1.0f //  inverse of membrane capacity, 1/pF
@@ -189,7 +190,7 @@ __global__ void gpu_integrate_neurons(
             V_m_last[n] = V_mem;
 #ifdef OSCILL_SAVE
             if (t % recInt == 0){
-                Vrec[Nneur*(t % T_sim_partial/recInt) + n] = V_m[n];
+                Vrec[Nrec*(t % T_sim_partial/recInt) + n] = V_m[n+50];
             }
 #endif
         }

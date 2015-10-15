@@ -24,6 +24,7 @@
 
 #define recInt 5
 #define T_sim_partial 10000 // in time frames
+#define Nrec 10
 
 unsigned int time_part_syn;
 // maximum part of simulating time for which is allocated memory

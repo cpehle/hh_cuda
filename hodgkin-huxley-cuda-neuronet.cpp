@@ -90,7 +90,7 @@ int main(int argc, char* argv[]){
 #ifdef OSCILL_SAVE
 		cudaDeviceSynchronize();
     	if (t % T_sim_partial == 0){
-			CUDA_CHECK_RETURN(cudaMemcpy(Vrec, Vrec_dev, Nneur*T_sim_partial/recInt*sizeof(float), cudaMemcpyDeviceToHost));
+			CUDA_CHECK_RETURN(cudaMemcpy(Vrec, Vrec_dev, Nrec*T_sim_partial/recInt*sizeof(float), cudaMemcpyDeviceToHost));
 			save_oscill(t);
     	}
 #endif
@@ -120,7 +120,7 @@ int main(int argc, char* argv[]){
 		}
 	}
 #ifdef OSCILL_SAVE
-	CUDA_CHECK_RETURN(cudaMemcpy(Vrec, Vrec_dev, Nneur*T_sim_partial/recInt*sizeof(float), cudaMemcpyDeviceToHost));
+	CUDA_CHECK_RETURN(cudaMemcpy(Vrec, Vrec_dev, Nrec*T_sim_partial/recInt*sizeof(float), cudaMemcpyDeviceToHost));
 	save_oscill(0, true);
 #endif
 
@@ -522,7 +522,7 @@ void malloc_neur_memory(){
 	res_senders = new int[W_P_NUM_BUND*NUM_BUND*expected_spk_num];
 	num_spk_in_bund = new int[W_P_NUM_BUND*NUM_BUND]();
 #ifdef OSCILL_SAVE
-	Vrec = new float[Nneur*T_sim_partial/recInt];
+	Vrec = new float[Nrec*T_sim_partial/recInt];
 #endif
 }
 
@@ -576,7 +576,7 @@ void copy2device(){
 	cudaMalloc((void**) &delays_dev, s_isize);
 	cudaMalloc((void**) &num_spikes_syn_dev, s_isize);
 #ifdef OSCILL_SAVE
-	cudaMalloc((void**) &Vrec_dev, Nneur*T_sim_partial/recInt*sizeof(float));
+	cudaMalloc((void**) &Vrec_dev, Nrec*T_sim_partial/recInt*sizeof(float));
 #endif
 	// Copying to GPU device memory neuron arrays
 	cudaMemcpy(V_ms_dev, V_ms, n_fsize, cudaMemcpyHostToDevice);
@@ -667,7 +667,7 @@ void save_oscill(int tm, bool lastFlag /*lastFlag=false*/){
 		s >> name;
 		file = fopen(name, "a+b");
 		for (int t = Tstart_; t < Tmax; t++){
-			fwrite(&Vrec[Nneur*t + j], sizeof(float), 1, file);
+			fwrite(&Vrec[Nrec*t + j], sizeof(float), 1, file);
 		}
 		fclose(file);
 	}
