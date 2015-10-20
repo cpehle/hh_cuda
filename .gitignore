@@ -4,6 +4,7 @@
 *.odt
 *.o
 *.out
+*.png
 .*
 */
 !.gitignore

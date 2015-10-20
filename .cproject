@@ -133,6 +133,7 @@
 		<configuration configurationName="Release">
 			<resource resourceType="PROJECT" workspacePath="/hh_cuda"/>
 		</configuration>
+		<configuration configurationName="Debug"/>
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 </cproject>

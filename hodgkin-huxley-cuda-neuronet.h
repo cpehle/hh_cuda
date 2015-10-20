@@ -22,7 +22,7 @@
 #define NEUR_BLOCK_SIZE 128
 #define SYN_BLOCK_SIZE 512
 
-#define recInt 5
+#define recInt 1
 #define T_sim_partial 10000 // in time frames
 #define Nrec 10
 

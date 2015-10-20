@@ -640,7 +640,7 @@ void clear_oscill_file(){
 	stringstream s;
 	s.precision(2);
 	char* name = new char[500];
-	for (unsigned int j = 0; j < Nneur; j++){
+	for (unsigned int j = 0; j < Nrec; j++){
 		s << f_name << "/" << "N_" << j << "_oscill" << endl;
 		s >> name;
 		file = fopen(name, "w");
@@ -662,7 +662,7 @@ void save_oscill(int tm, bool lastFlag /*lastFlag=false*/){
 	stringstream s;
 	s.precision(2);
 	char* name = new char[500];
-	for (unsigned int j = 0; j < Nneur; j++){
+	for (unsigned int j = 0; j < Nrec; j++){
 		s << f_name << "/" << "N_" << j << "_oscill" << endl;
 		s >> name;
 		file = fopen(name, "a+b");
