@@ -44,29 +44,25 @@ int world_size, world_rank;
 int main(int argc, char* argv[]){
     init_params(argc, argv);
 
-    #ifdef WITH_MPI
+#ifdef WITH_MPI
 //    cout << "Calculating with MPI" << endl;
     MPI_Init(NULL, NULL);
 
     MPI_Comm_size(MPI_COMM_WORLD, &world_size);
     MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
 
-
     int deviceCount = 0;
     cudaGetDeviceCount(&deviceCount);
-    switch (deviceCount){
-        // @TODO hardcode! 2-3 - number of GPU devices on each node of Lobachevsky Supercomputer 
-        case 3: cudaSetDevice(world_rank % 3); break;
-		case 2: cudaSetDevice(world_rank % 2); break;
-        case 1: cudaSetDevice(0); break;
-        default: exit(EXIT_FAILURE);
+    if (deviceCount == 0){
+    	cudaSetDevice(0);
+    } else {
+    	cudaSetDevice(world_rank % deviceCount);
     }
     //I_e += dI_e*world_rank;
     seed += 150*world_rank;
 #else
     cudaSetDevice(0);
 #endif
-    sprintf(f_name, "%s/N_%i_rate_%.1f_w_n_%.1f_Ie_%.2f", f_name, BUND_SZ, rate, w_n, I_e);
 
     exp_psc = expf(-h/tau_psc);
 	time_part_syn = 10.0f/h;
