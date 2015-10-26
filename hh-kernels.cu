@@ -6,7 +6,7 @@
  */
 #include <curand_kernel.h>
 
-#define recInt 1
+#define recInt 5
 #define T_sim_partial 10000 // in time frames
 #define Nrec 10
 
@@ -111,10 +111,10 @@ __global__ void gpu_integrate_neurons(
             y[n] *= exp_psc;
 
             // if where is poisson impulse on neuron
-            if (psn_time[n] == t){
+            while (psn_time[n] == t){
                 y_psn[n] += exp_w_p[n];
-                psn_time[n] += 1 + (unsigned int) (-(1000.0f/(rate*h))*logf(get_random(psn_seed + n)));
-//              psn_time[n] += 1 + (unsigned int) (-(1000.0f/(rate*h))*logf(curand_uniform(&state[n])));
+                psn_time[n] += (unsigned int) (-(1000.0f/(rate*h))*logf(get_random(psn_seed + n)));
+//              psn_time[n] += (unsigned int) (-(1000.0f/(rate*h))*logf(curand_uniform(&state[n])));
             }
             float V_mem, n_channel, m_channel, h_channel;
             float v1, v2, v3, v4;
@@ -190,7 +190,7 @@ __global__ void gpu_integrate_neurons(
             V_m_last[n] = V_mem;
 #ifdef OSCILL_SAVE
             if (t % recInt == 0){
-                Vrec[Nrec*(t % T_sim_partial/recInt) + n] = V_m[n + 1000];
+                Vrec[Nrec*(t % T_sim_partial/recInt) + n] = V_m[n];
             }
 #endif
         }
