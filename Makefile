@@ -1,6 +1,8 @@
 #MPI_INC=-I/common/openmpi/include
 #MPI_LIB_PATH=-L/common/openmpi/lib
 #MPI_LIB=-lmpi_cxx -lmpi
+#CUDA_INC=-I/common/cuda-5.5/include/
+#CUDA_LIB_PATH=-L/common/cuda-5.5/lib64/
 MPI_INC=-I/usr/lib/openmpi/include/openmpi -I/usr/lib/openmpi/include
 MPI_LIB_PATH=-L/usr/lib -L/usr/lib/openmpi/lib
 MPI_LIB=-lmpi_cxx -lmpi -ldl -lhwloc
