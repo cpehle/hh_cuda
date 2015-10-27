@@ -11,37 +11,24 @@ import csv
 from scipy.ndimage.filters import gaussian_filter as gs_filter
 from data_load import loadSpkTimes
 
-Ie=4.4
+Ie=5.27
 
-#N = 30
-#rate = 170.0
-#w_n = 2.4
-#varParam = np.arange(1.85, 2.31, 0.025)
-
-#N = 2
-#rate = 185.0
-#w_n = 5.4
-#varParam = np.arange(0.5, 2.6, 0.1)
-
-#N = 100
-#rate = 180.0
-#w_n = 1.3
-#varParam = np.arange(2.0, 2.15, 0.01)
-
-N = 1
-rate = 170.0
-w_n = 0.0
-varParam = np.arange(3, 21, 2)
+N = 100
+rate = 185.0
+w_n = 1.3
+varParam = np.arange(2.0, 2.15, 0.01)
 
 res_path = '/media/ssd/'
 
 def loadIsi(w_p):
     print w_p
     isiAll = []
-    for seedIdx in range(0, 800):
-        path = res_path + 'N_{}_rate_{}_w_n_{}_Ie_{:.2f}/seed_{}/'.format(N, rate, w_n, Ie, seedIdx)
+    for seedIdx in range(0, 1):
+        path = res_path + 'old/N_{}_rate_{}_w_n_{}_Ie_{:.2f}_h_0.1/seed_{}/'.format(N, rate, w_n, Ie, seedIdx)
 
-        tm, snd = loadSpkTimes(path + 'w_p_{:.3f}'.format(w_p))
+#        tm, snd = loadSpkTimes(path + 'w_p_{:.3f}'.format(w_p))
+        tm = np.fromfile('{}/w_p_{:.3f}_times'.format(path, w_p), dtype='float32')
+        snd = np.fromfile('{}/w_p_{:.3f}_senders'.format(path, w_p), dtype='int32')
 
         times = [[]]*N
         isi = [[]]*N
@@ -77,12 +64,12 @@ for idx, w_p in enumerate(varParam):
     stp = Trange[tmaxInd + np.nonzero(df == 1)[0][0] + 1]
 
     qual.append(atmax*tmax/(stp - st))
-#    if idx % 2 == 0:
-#        pl.figure('isi spectras')
-#        pl.plot(Trange, isiHst, label='D={:.2f}'.format(10**w_p))
-#        pl.hlines(atmax/np.sqrt(2), st, stp)
-#        pl.legend()
-#pl.xlabel('isi, ms', fontsize=16)
+    if idx % 2 == 0:
+        pl.figure('isi spectras')
+        pl.plot(Trange, isiHst, label='D={:.2f}'.format(10**w_p))
+        pl.hlines(atmax/np.sqrt(2), st, stp)
+        pl.legend()
+    pl.xlabel('isi, ms', fontsize=16)
 
 #varParam = 10**varParam
 
@@ -90,13 +77,16 @@ isiMn = np.array(isiMn)
 isiStd = np.array(isiStd)
 
 pl.figure('qual[isi]')
-pl.semilogx(varParam, qual, label='Ie={}'.format(Ie))
-pl.xlabel(r'$D, pA^2$', fontsize=18)
+pl.plot(varParam, qual, label='Ie={}'.format(Ie))
+#pl.xlabel(r'$D, pA^2$', fontsize=18)
+pl.xlabel(r'$w_p, pA$', fontsize=16)
 pl.ylabel(r'$\beta_{isi}$', fontsize=16)
-pl.legend()
-
+#pl.legend()
+#%%
 pl.figure("cv[isi]")
-pl.semilogx(varParam, isiStd/isiMn, label='Ie={}'.format(Ie))
-pl.xlabel("D, pA^2", fontsize=16)
-pl.ylabel("cv", fontsize=16)
-pl.legend()
+pl.plot(varParam, isiStd/isiMn, label='Ie={}'.format(Ie))
+#pl.xlabel(r'$D, pA^2$', fontsize=16)
+pl.xlabel(r'$w_p,\ pA$', fontsize=16)
+pl.ylabel(r"$CV_{isi}$", fontsize=16)
+legend([r"$Ie=5.27\ rate=182.5\ w_n=1.3$"])
+#pl.legend()
