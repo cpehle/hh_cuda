@@ -4,6 +4,7 @@
 *.odt
 *.o
 *.out
+*.txt
 *.png
 .*
 */
