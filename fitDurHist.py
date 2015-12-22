@@ -11,7 +11,7 @@ import scipy.stats
 import scipy.optimize
 
 T = 20.0
-w_p = 1.95
+w_p = 2.00
 (TimesUp, TimesDown, Periods) = np.load("trans/durat_185.0_1.3_5.27_{:.3f}.npy".format(w_p))
 TimesUp = np.array(TimesUp, dtype='float32')
 TimesDown = np.array(TimesDown, dtype='float32')
