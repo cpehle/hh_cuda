@@ -104,7 +104,7 @@ int main(int argc, char* argv[]){
 			CUDA_CHECK_RETURN(cudaMemcpy(num_spikes_syn, num_spikes_syn_dev, Ncon*sizeof(int), cudaMemcpyDeviceToHost));
 
 			swap_spikes();
-//			saveIVP2Fl();
+// 			saveIVP2Fl();
 			CUDA_CHECK_RETURN(cudaMemcpy(spike_times_dev, spike_times, Nneur*sizeof(int)*T_sim_partial/time_part_syn, cudaMemcpyHostToDevice));
 			CUDA_CHECK_RETURN(cudaMemcpy(num_spikes_neur_dev, num_spikes_neur, Nneur*sizeof(int), cudaMemcpyHostToDevice));
 			CUDA_CHECK_RETURN(cudaMemcpy(num_spikes_syn_dev, num_spikes_syn, Ncon*sizeof(int), cudaMemcpyHostToDevice));
@@ -604,6 +604,7 @@ void copy2device(){
 }
 
 void init_params(int argc, char* argv[]){
+  	float startTm;
 	stringstream str;
 	for (int i = 1; i < argc; i++){
 		str << argv[i] << endl;
@@ -624,7 +625,7 @@ void init_params(int argc, char* argv[]){
 			case 14: str >> dI_e; break;
 			case 15: str >> gaussNoiseFlag; break;
 			case 16: str >> ivp_fname; break;
-			case 17: str >> Tstart; break;
+			case 17: str >> startTm; Tstart = startTm/h + 1; break;
 		}
 	}
 	W_P_BUND_SZ = Nneur/W_P_NUM_BUND;

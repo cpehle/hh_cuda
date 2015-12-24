@@ -13,15 +13,14 @@ OBJECT=hodgkin-huxley-cuda-neuronet.cpp
 
 all: hh-cuda
 
-hh-cuda: $(OBJECT) hodgkin-huxley-cuda-neuronet.h hh-kernels.h hh-kernels.o
+hh-cuda: $(OBJECT) hodgkin-huxley-cuda-neuronet.h hh-kernels.h hh-kernels.o common_declarations.h
 #	nvcc -arch sm_21 -Xcompiler -Wall -O3 --use_fast_math hh-kernels.o $(OBJECT) -o $@
 	nvcc -arch sm_21 -Xcompiler -Wall -O3 --use_fast_math -Xcompiler -pthread -DWITH_MPI -DOSCILL_SAVE $(MPI_INC) hh-kernels.o  $(OBJECT) $(MPI_LIB) $(MPI_LIB_PATH) -o $@
 #	g++ -O3 -pthread -DWITH_MPI $(MPI_INC) $(CUDA_INC) $(CUDA_LIB_PATH) $(MPI_LIB_PATH) hh-kernels.o $(OBJECT) $(MPI_LIB) -lcudart_static -ldl -lpthread -lrt -o $@
 #	g++ -O3 -pthread $(CUDA_INC) $(CUDA_LIB_PATH) hh-kernels.o $(OBJECT) -lcudart_static -ldl -lpthread -lrt -o $@
 
-hh-kernels.o: hh-kernels.cu
+hh-kernels.o: hh-kernels.cu common_declarations.h
 	nvcc -c -arch sm_21 -Xcompiler -Wall -O3 --use_fast_math -DOSCILL_SAVE hh-kernels.cu -o $@
-#	nvcc -c -arch sm_21 -Xcompiler -Wall -O3 --use_fast_math hh-kernels.cu -o $@
 
 clean:
 	rm hh-cuda hh-kernels.o

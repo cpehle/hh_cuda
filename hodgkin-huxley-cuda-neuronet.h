@@ -10,6 +10,7 @@
 //#include <device_launch_parameters.h>
 #include <iostream>
 #include "hh-kernels.h"
+#include "common_declarations.h"
 
 #define CUDA_CHECK_RETURN(value) {										\
 	cudaError_t _m_cudaStat = value;									\
@@ -22,10 +23,6 @@
 #define NEUR_BLOCK_SIZE 128
 #define SYN_BLOCK_SIZE 512
 
-#define recInt 5
-#define T_sim_partial 10000 // in time frames
-#define Nrec 10
-
 unsigned int time_part_syn;
 // maximum part of simulating time for which is allocated memory
 // time_part_syn <= T[ms]/h[ms]
@@ -37,7 +34,7 @@ unsigned int time_part_syn;
 // if greater then fragmentation becomes less,
 // but more RAM is used
 // in frames
-unsigned int SaveIntervalTIdx = 100000;
+unsigned int SaveIntervalTIdx = 500000;
 
 float tau_psc = 0.2f;
 float exp_psc;

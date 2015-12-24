@@ -5,10 +5,7 @@
  *      Author: pavel
  */
 #include <curand_kernel.h>
-
-#define recInt 5
-#define T_sim_partial 10000 // in time frames
-#define Nrec 10
+#include "common_declarations.h"
 
 // neuron parameters
 #define Cm_    1.0f //  inverse of membrane capacity, 1/pF
@@ -106,6 +103,8 @@ __global__ void gpu_integrate_neurons(
             float I_syn_last = I_psn[n] + I_syn[n];
             I_psn[n]  = (y_psn[n]*h + I_psn[n])*exp_psc;
             y_psn[n] *= exp_psc;
+
+//            I_psn[n] = 0.0;
 
             I_syn[n]  = (y[n]*h + I_syn[n])*exp_psc;
             y[n] *= exp_psc;
