@@ -12,7 +12,7 @@ def analys_trans(fname, maxSr=15, srHstBins=10):
     srHstBinSize = maxSr/srHstBins
 
     (time, sr) = np.load(fname)
-    sr = gs_filter(sr, 5)
+#    sr = gs_filter(sr, 5)
 
     srHst = np.histogram(sr, bins=srHstBins, range=(0, maxSr))[0]
 
@@ -22,7 +22,7 @@ def analys_trans(fname, maxSr=15, srHstBins=10):
     srMidpnt = np.argmin(srHst[firstMaxIdx:secondMaxIdx])*srHstBinSize
 #    srMidpnt = (firstMaxIdx + secondMaxIdx)/2
     print(srMidpnt)
-    srMidpnt = 25.
+    srMidpnt = 50.
 
     thr = np.array(sr >= srMidpnt, dtype='int32')
     df = np.diff(thr)
@@ -30,21 +30,27 @@ def analys_trans(fname, maxSr=15, srHstBins=10):
     indices_down = pl.find(df == -1)
 
     TimesUp = []
+    ActMeanUp = []
     TimesDown = []
+    ActMeanDown = []
     Periods = []
     # all time in sec
     if sr[0] > srMidpnt:
         for up, down in zip(indices_up, indices_down):
             TimesDown.append(up - down)
+            ActMeanDown.append(np.mean(sr[down:up]))
         for up, down in zip(indices_up, indices_down[1:]):
             TimesUp.append(down - up)
+            ActMeanUp.append(np.mean(sr[up:down]))
         Periods = np.diff(indices_down)
     elif sr[0] <= srMidpnt:
         for up, down in zip(indices_up, indices_down):
             TimesUp.append(down - up)
+            ActMeanUp.append(np.mean(sr[up:down]))
         for up, down in zip(indices_up[1:], indices_down):
             TimesDown.append(up - down)
+            ActMeanDown.append(np.mean(sr[down:up]))
         Periods = np.diff(indices_up)
     else:
         raise Exception("Unexpected type of sr")
-    return np.array(Periods), np.array(TimesDown), np.array(TimesUp)
+    return np.array(Periods), np.array(TimesDown), np.array(TimesUp), np.array(ActMeanDown), np.array(ActMeanUp)

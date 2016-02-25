@@ -12,16 +12,15 @@ import numpy as np
 import sys
 from transition_analys import analys_trans
 
-maxSr = 100
+maxSr = 130
 srHstBins = 40
-
+BinSize = 20.
 N = 100
 Ie=5.27
 rate = 185.0
 w_n = 1.3
-w_p = 2.08
 
-res_path = '/home/esir_p/hh_cuda/long_new/'
+res_path = './'
 
 if len(sys.argv) > 1:
     res_path = sys.argv[1]
@@ -39,22 +38,29 @@ from mpi4py import MPI
 comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 w_p = var_range[rank]
+w_p = 1.96
 
-path = res_path + 'N_{}_rate_{}_w_n_{}_Ie_{:.2f}_h_0.02/'.format(N, rate, w_n, Ie)
-#path = res_path + 'N_{}_rate_{}_w_n_{}_Ie_{:.2f}/'.format(N, rate, w_n, Ie)
+path = res_path + 'N_{}_rate_{}_w_n_{}_Ie_{:.2f}_all/'.format(N, rate, w_n, Ie)
 
 Periods = []
 TimesUp = []
 TimesDown = []
 
-for seed in xrange(0, 600):
-    period, time_down, time_up = analys_trans(path + "seed_{}/awsr_w_p_{:.3f}.npy".format(seed, w_p),
+for seed in xrange(0, 1):
+    period, time_down, time_up, actdown, actup = analys_trans(path + "seed_{}/awsr_w_p_{:.3f}.npy".format(seed, w_p),
 					      maxSr=maxSr, srHstBins=srHstBins)
     Periods.extend(period)
     TimesDown.extend(time_down)
     TimesUp.extend(time_up)
 Periods = np.array(Periods)
 TimesDown = np.array(TimesDown)
-TimesUp = np.array(TimesUp)
+TimesUp = np.array(TimesUp, dtype='float')*BinSize/1000
+#%%
+plot(TimesUp, actup, '.')
 
-np.save("{}/durat_{}_{}_{}_{:.3f}.npy".format(path, rate, w_n, Ie, w_p), (TimesUp, TimesDown, Periods))
+Tmax = 450
+Tmin = 0.1
+figure()
+hst = hist(TimesUp, bins=int((Tmax - Tmin)/2.), range=(Tmin, Tmax))
+
+#np.save("{}/durat_{}_{}_{}_{:.3f}.npy".format(path, rate, w_n, Ie, w_p), (TimesUp, TimesDown, Periods))

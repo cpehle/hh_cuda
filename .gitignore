@@ -2,6 +2,8 @@
 *.pyc
 *.npy
 *.odt
+*.doc
+*.docx
 *.o
 *.out
 *.txt
