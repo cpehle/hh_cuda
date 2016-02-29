@@ -8,6 +8,8 @@
 *.out
 *.txt
 *.png
+*.eps
+*.svg
 .*
 */
 !.gitignore
