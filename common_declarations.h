@@ -8,8 +8,9 @@
 #ifndef COMMON_DECLARATIONS_H_
 #define COMMON_DECLARATIONS_H_
 
-#define recInt 5
+#define recInt 10
 #define T_sim_partial 50000 // in time frames
-#define Nrec 10
+#define Nrec 100
+#define EXPECTED_SPIKE_PERIOD 10.0
 
 #endif /* COMMON_DECLARATIONS_H_ */

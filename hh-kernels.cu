@@ -20,7 +20,8 @@
 #define tau_cor 2.0f
 
 __device__ float get_random(unsigned int *seed){
-    // return random number homogeneously distributed in interval [0:1]
+    // Park-Miller generator
+    // return random number homogeneously distributed in interval [0:1)
     unsigned long a = 16807;
     unsigned long m = 2147483647;
     unsigned long x = (unsigned long) *seed;
@@ -104,7 +105,7 @@ __global__ void gpu_integrate_neurons(
             I_psn[n]  = (y_psn[n]*h + I_psn[n])*exp_psc;
             y_psn[n] *= exp_psc;
 
-//            I_psn[n] = 0.0;
+//             I_psn[n] = 0.0;
 
             I_syn[n]  = (y[n]*h + I_syn[n])*exp_psc;
             y[n] *= exp_psc;

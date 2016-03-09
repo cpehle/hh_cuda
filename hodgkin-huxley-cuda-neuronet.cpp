@@ -65,7 +65,7 @@ int main(int argc, char* argv[]){
 #endif
 
     exp_psc = expf(-h/tau_psc);
-	time_part_syn = 10.0f/h;
+	time_part_syn = EXPECTED_SPIKE_PERIOD/h;
 	T_sim = SimulationTime/h;
 	init_neurs_from_file();
 	init_conns_from_file();

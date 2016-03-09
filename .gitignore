@@ -4,6 +4,8 @@
 *.odt
 *.doc
 *.docx
+*.odp
+*.pdf
 *.o
 *.out
 *.txt
